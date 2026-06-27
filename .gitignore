@@ -1,0 +1,74 @@
+# === OS Specific ===
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# === IDEs and Editors ===
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# === Python & Testing ===
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.tox/
+.poetry/
+poetry.lock
+venv/
+.venv/
+env/
+ENV/
+
+# === FastAPI & Web Server ===
+.env
+.env.*
+!.env.example
+*.log
+logs/
+temp/
+
+# === PyTorch & ML Artifacts ===
+# Exclude model weights and checkpoint files
+*.pt
+*.pth
+*.onnx
+*.bin
+*.pkl
+*.pb
+# Exclude actual training checkpoints & intermediate runs
+models/*
+!models/.gitkeep
+artifacts/*
+!artifacts/.gitkeep
+
+# === Streamlit ===
+.streamlit/config.toml
+.streamlit/secrets.toml
+
+# === DVC (Data Version Control) ===
+# DVC caches and locks should not be committed to Git
+.dvc/cache/
+.dvc/tmp/
+.dvc/config.local
+
+# === MLflow ===
+# Local MLflow runs and tracking database caches
+mlruns/
+mlflow.db
+
+# === Docker ===
+.docker/
+docker-compose.override.yml
