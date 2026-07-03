@@ -1,0 +1,7 @@
+vision_model_name: "vit_base_patch16_224"
+vision_img_size: 224
+text_model_name: "emilyalsentzer/Bio_ClinicalBERT"
+embedding_dim: 768
+fusion_hidden_dim: 256
+num_classes: 5
+target_gradcam_layer: "blocks.11.norm1"

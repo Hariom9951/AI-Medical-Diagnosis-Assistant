@@ -1,0 +1,16 @@
+api:
+  host: "0.0.0.0"
+  port: 8000
+  prefix: "/api/v1"
+
+database:
+  host: "localhost"
+  port: 5432
+  username: "postgres"
+  password: "secure_postgres_password"
+  database_name: "medical_diagnosis"
+
+storage:
+  bucket_name: "medical-scans-bucket"
+  endpoint_url: null
+  region_name: "us-east-1"

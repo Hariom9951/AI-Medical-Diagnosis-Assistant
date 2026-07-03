@@ -1,0 +1,6 @@
+epochs: 20
+batch_size: 32
+learning_rate: 0.0001
+checkpoint_dir: "artifacts/checkpoints"
+mlflow_tracking_uri: "http://localhost:5000"
+mlflow_experiment_name: "ai-medical-diagnosis-assistant"

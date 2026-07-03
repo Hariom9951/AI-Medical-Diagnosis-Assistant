@@ -1,0 +1,35 @@
+# PyTorch & Computer Vision
+torch>=2.6.0
+torchvision>=0.21.0
+opencv-python-headless>=4.9.0.80
+albumentations>=1.4.0
+grad-cam>=1.5.0
+
+# Transformers & NLP
+transformers>=4.38.0
+tokenizers>=0.15.1
+
+# FastAPI Web API Layer
+fastapi>=0.109.2
+uvicorn[standard]>=0.27.1
+pydantic>=2.6.1
+python-multipart>=0.0.9
+
+# Streamlit Frontend Client
+streamlit>=1.31.1
+
+# Data Version Control & Cloud
+dvc[gdrive]>=3.43.1
+
+# Experiment Tracking & MLOps
+mlflow>=2.10.2
+dagshub>=0.3.16
+
+# Database & Core Infrastructure
+sqlalchemy>=2.0.27
+psycopg2-binary>=2.9.9
+python-dotenv>=1.0.1
+pyyaml>=6.0.1
+
+# Clinical PDF Report Generation
+reportlab>=4.1.0
