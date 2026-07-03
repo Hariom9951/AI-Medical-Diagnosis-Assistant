@@ -81,9 +81,13 @@ module = [
     "reportlab.*",
     "fitz.*",
     "dagshub.*",
-    "mlflow.*"
+    "mlflow.*",
+    "transformers.*",
+    "sklearn.*",
+    "pytest.*"
 ]
 ignore_missing_imports = true
+follow_imports = "skip"
 
 [tool.pytest.ini_options]
 minversion = "8.0"
