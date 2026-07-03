@@ -1,0 +1,17 @@
+# Data Validation Configuration for AI Medical Diagnosis Assistant
+raw_images_dir: "data/raw/covid19-radiography-database/COVID-19_Radiography_Dataset"
+raw_symptoms_csv: "data/raw/disease-symptom-description-dataset/dataset.csv"
+cleaned_symptoms_csv: "data/processed/disease_symptom_cleaned.csv"
+reports_dir: "docs/reports"
+expected_classes:
+  - "COVID"
+  - "Lung_Opacity"
+  - "Normal"
+  - "Viral Pneumonia"
+expected_dimensions:
+  - 299
+  - 299
+supported_image_formats:
+  - ".png"
+  - ".jpg"
+  - ".jpeg"

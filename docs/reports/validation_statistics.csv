@@ -1,0 +1,13 @@
+Metric,Value
+initial_scans,21165
+final_scans,21111
+deleted_unsupported_scans,0
+deleted_corrupted_scans,0
+deleted_duplicate_scans,54
+incorrect_dims_scans,0
+missing_masks_scans,0
+initial_symptom_records,4920
+final_symptom_records,286
+dropped_symptom_duplicates,4616
+dropped_symptom_invalid_labels,18
+symptom_null_cells,2614

@@ -1,0 +1,24 @@
+{
+    "images": {
+        "initial_count": 21165,
+        "final_count": 21111,
+        "unsupported_deleted": 0,
+        "corrupted_deleted": 0,
+        "duplicates_deleted": 54,
+        "incorrect_dimensions": 0,
+        "missing_masks": 0,
+        "classes": {
+            "COVID": 3570,
+            "Lung_Opacity": 6012,
+            "Normal": 10191,
+            "Viral Pneumonia": 1338
+        }
+    },
+    "symptoms": {
+        "initial_count": 4920,
+        "final_count": 286,
+        "duplicates_deleted": 4616,
+        "invalid_labels_deleted": 18,
+        "null_cells": 2614
+    }
+}
