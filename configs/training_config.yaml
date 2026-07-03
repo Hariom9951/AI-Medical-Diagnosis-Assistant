@@ -1,6 +1,46 @@
+# Training Configuration for AI Medical Diagnosis Assistant - Phase 14
+# EfficientNet-B0 Image Classifier
+
+# ──────────────────────────────────────────────
+# Model Architecture
+# ──────────────────────────────────────────────
+model_name: "efficientnet_b0"
+num_classes: 4             # COVID / Lung_Opacity / Normal / Viral Pneumonia
+freeze_backbone: true      # Set false to fine-tune entire backbone
+dropout: 0.3
+
+# ──────────────────────────────────────────────
+# Optimizer
+# ──────────────────────────────────────────────
+optimizer: "adamw"         # adamw | adam | sgd
+learning_rate: 0.001
+weight_decay: 0.0001
+momentum: 0.9              # Used only when optimizer = sgd
+
+# ──────────────────────────────────────────────
+# Learning Rate Scheduler
+# ──────────────────────────────────────────────
+scheduler: "cosine"        # cosine | step | plateau | none
+step_size: 7               # StepLR: decay LR every N epochs
+gamma: 0.1                 # StepLR / ExponentialLR decay factor
+t_max: 10                  # CosineAnnealingLR: half period
+
+# ──────────────────────────────────────────────
+# Training Loop
+# ──────────────────────────────────────────────
 epochs: 20
 batch_size: 32
-learning_rate: 0.0001
+early_stopping_patience: 5
+early_stopping_min_delta: 0.001
+
+# ──────────────────────────────────────────────
+# Paths
+# ──────────────────────────────────────────────
 checkpoint_dir: "artifacts/checkpoints"
-mlflow_tracking_uri: "http://localhost:5000"
-mlflow_experiment_name: "ai-medical-diagnosis-assistant"
+best_model_path: "artifacts/checkpoints/best_model.pth"
+
+# ──────────────────────────────────────────────
+# MLflow Experiment Tracking
+# ──────────────────────────────────────────────
+mlflow_tracking_uri: "sqlite:///mlflow.db"
+mlflow_experiment_name: "efficientnet-covid-classifier"

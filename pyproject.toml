@@ -84,7 +84,8 @@ module = [
     "mlflow.*",
     "transformers.*",
     "sklearn.*",
-    "pytest.*"
+    "pytest.*",
+    "pandas.*"
 ]
 ignore_missing_imports = true
 follow_imports = "skip"

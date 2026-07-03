@@ -106,3 +106,15 @@ class AppReportError(AppException):
             status_code=500,
             details=details,
         )
+
+
+class AppConfigurationError(AppException):
+    """Raised when a configuration file is missing, malformed, or contains invalid values."""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.SYSTEM_ERROR,
+            status_code=500,
+            details=details,
+        )
