@@ -30,3 +30,5 @@ shuffle_train: true
 num_workers: 0  # 0 workers is standard and safest for multi-process data loading on Windows
 pin_memory: true
 persistent_workers: false
+prefetch_factor: 2
+cache_active: false

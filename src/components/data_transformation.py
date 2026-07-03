@@ -12,16 +12,17 @@ from pathlib import Path
 from typing import Any, Dict, Final, List, Optional, Tuple
 
 import albumentations as A
-import numpy as np
 import pandas as pd
-import torch
 import yaml
 from albumentations.pytorch import ToTensorV2
-from PIL import Image
 from sklearn.model_selection import train_test_split
-from torch.utils.data import DataLoader, Dataset
 from transformers import DistilBertTokenizer
 
+from src.components.pytorch_dataset import (
+    MedicalImageDataset,
+    SymptomTextDataset,
+    create_pytorch_dataloader,
+)
 from src.utils.exceptions import AppStorageError, AppValidationError
 from src.utils.logger import AppLogger
 
@@ -150,111 +151,7 @@ class DataTransformationConfig:
             )
 
 
-class MedicalImageDataset(Dataset):
-    """PyTorch Dataset loading chest X-ray scans and executing Albumentations."""
-
-    def __init__(self, image_paths: List[Path], labels: List[int], transform: Optional[A.Compose] = None) -> None:
-        """Initializes the Image dataset.
-
-        Args:
-            image_paths (List[Path]): List of absolute image paths.
-            labels (List[int]): Matching integer class labels.
-            transform (Optional[A.Compose]): Albumentations augmentation pipeline.
-        """
-        self.image_paths = image_paths
-        self.labels = labels
-        self.transform = transform
-
-    def __len__(self) -> int:
-        return len(self.image_paths)
-
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
-        """Loads scan, converts to RGB, resizes/transforms, and returns tensor."""
-        img_path = self.image_paths[idx]
-        label = self.labels[idx]
-
-        try:
-            with Image.open(img_path) as pil_img:
-                rgb_img = pil_img.convert("RGB")
-                image_np = np.array(rgb_img)
-
-            if self.transform:
-                augmented = self.transform(image=image_np)
-                image_tensor = augmented["image"]
-            else:
-                # Fallback simple tensor conversion if no transforms provided
-                image_tensor = torch.tensor(image_np, dtype=torch.float32).permute(2, 0, 1) / 255.0
-
-            return image_tensor, label
-        except Exception as e:
-            logger.error("Failed to load/transform image %s: %s", img_path, e)
-            # Return empty dummy tensor of size [3, 224, 224] to prevent dataloader failure
-            return torch.zeros((3, 224, 224), dtype=torch.float32), label
-
-
-class SymptomTextDataset(Dataset):
-    """PyTorch Dataset preprocessing symptom lists for DistilBERT NLP encoding."""
-
-    def __init__(
-        self,
-        symptom_strings: List[str],
-        labels: List[int],
-        tokenizer: Optional[DistilBertTokenizer] = None,
-        max_length: int = 64
-    ) -> None:
-        """Initializes the Text dataset.
-
-        Args:
-            symptom_strings (List[str]): Clean symptom text combinations.
-            labels (List[int]): Encoded disease label integers.
-            tokenizer (Optional[DistilBertTokenizer]): Pre-loaded HuggingFace tokenizer.
-            max_length (int): Padding/truncation boundary length.
-        """
-        self.symptom_strings = symptom_strings
-        self.labels = labels
-        self.max_length = max_length
-        
-        # Lazy loading tokenizer to prevent offline unit testing failures
-        if tokenizer is None:
-            try:
-                self.tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-            except Exception as e:
-                logger.warning("HuggingFace tokenizer download failed. Mocking placeholder tokens. Error: %s", e)
-                self.tokenizer = None
-        else:
-            self.tokenizer = tokenizer
-
-    def __len__(self) -> int:
-        return len(self.symptom_strings)
-
-    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        """Prepares text, feeds tokenizer, and returns input_ids and mask tensors."""
-        text = self.symptom_strings[idx]
-        label = self.labels[idx]
-
-        if self.tokenizer is not None:
-            try:
-                encoded = self.tokenizer(
-                    text,
-                    padding="max_length",
-                    truncation=True,
-                    max_length=self.max_length,
-                    return_tensors="pt"
-                )
-                return {
-                    "input_ids": encoded["input_ids"].squeeze(0),
-                    "attention_mask": encoded["attention_mask"].squeeze(0),
-                    "label": torch.tensor(label, dtype=torch.long)
-                }
-            except Exception as e:
-                logger.error("Tokenization failed for text '%s': %s", text, e)
-
-        # Fallback dummy representation (for offline/testing or failure runs)
-        return {
-            "input_ids": torch.zeros((self.max_length,), dtype=torch.long),
-            "attention_mask": torch.zeros((self.max_length,), dtype=torch.long),
-            "label": torch.tensor(label, dtype=torch.long)
-        }
+# Dataset classes are imported from pytorch_dataset.py
 
 
 class DataTransformation:
@@ -507,8 +404,8 @@ class DataTransformation:
             splits["test_texts"], splits["test_symp_lbl"], tokenizer=tokenizer
         )
 
-        # 2. Build PyTorch DataLoaders with configurations
-        train_img_loader = DataLoader(
+        # 2. Build PyTorch DataLoaders using the factory function
+        train_img_loader = create_pytorch_dataloader(
             train_img_dataset,
             batch_size=self.config.batch_size,
             shuffle=self.config.shuffle_train,
@@ -516,7 +413,7 @@ class DataTransformation:
             pin_memory=self.config.pin_memory,
             persistent_workers=self.config.persistent_workers
         )
-        val_img_loader = DataLoader(
+        val_img_loader = create_pytorch_dataloader(
             val_img_dataset,
             batch_size=self.config.batch_size,
             shuffle=False,
@@ -524,7 +421,7 @@ class DataTransformation:
             pin_memory=self.config.pin_memory,
             persistent_workers=self.config.persistent_workers
         )
-        test_img_loader = DataLoader(
+        test_img_loader = create_pytorch_dataloader(
             test_img_dataset,
             batch_size=self.config.batch_size,
             shuffle=False,
@@ -533,7 +430,7 @@ class DataTransformation:
             persistent_workers=self.config.persistent_workers
         )
 
-        train_symp_loader = DataLoader(
+        train_symp_loader = create_pytorch_dataloader(
             train_symp_dataset,
             batch_size=self.config.batch_size,
             shuffle=self.config.shuffle_train,
@@ -541,7 +438,7 @@ class DataTransformation:
             pin_memory=self.config.pin_memory,
             persistent_workers=self.config.persistent_workers
         )
-        val_symp_loader = DataLoader(
+        val_symp_loader = create_pytorch_dataloader(
             val_symp_dataset,
             batch_size=self.config.batch_size,
             shuffle=False,
@@ -549,7 +446,7 @@ class DataTransformation:
             pin_memory=self.config.pin_memory,
             persistent_workers=self.config.persistent_workers
         )
-        test_symp_loader = DataLoader(
+        test_symp_loader = create_pytorch_dataloader(
             test_symp_dataset,
             batch_size=self.config.batch_size,
             shuffle=False,
@@ -580,8 +477,10 @@ class DataTransformation:
         splits = loader_results["splits"]
 
         # Fetch example dimensions from loaders
-        img_batch, img_labels = next(iter(loader_results["train_img_loader"]))
-        symp_batch = next(iter(loader_results["train_symp_loader"]))
+        # MedicalImageDataset yields (image_tensor, label, img_path) 3-tuple
+        img_batch, img_labels, _ = next(iter(loader_results["train_img_loader"]))
+        # SymptomTextDataset yields (input_ids, attention_mask, label) 3-tuple
+        symp_ids, symp_mask, symp_labels = next(iter(loader_results["train_symp_loader"]))
 
         report_path = self.config.reports_dir / "Data_Transformation_Report.md"
         with open(report_path, "w", encoding="utf-8") as f:
@@ -615,9 +514,9 @@ Loaded batch shapes with batch size `{self.config.batch_size}`:
 
 *   **Image Batch Tensor Dims:** `{list(img_batch.shape)}` (expected: `[batch_size, 3, 224, 224]`)
 *   **Image Labels Tensor Dims:** `{list(img_labels.shape)}` (expected: `[batch_size]`)
-*   **Symptom Text input_ids Dims:** `{list(symp_batch["input_ids"].shape)}` (expected: `[batch_size, max_length]`)
-*   **Symptom Text attention_mask Dims:** `{list(symp_batch["attention_mask"].shape)}` (expected: `[batch_size, max_length]`)
-*   **Symptom Labels Dims:** `{list(symp_batch["label"].shape)}` (expected: `[batch_size]`)
+*   **Symptom Text input_ids Dims:** `{list(symp_ids.shape)}` (expected: `[batch_size, max_length]`)
+*   **Symptom Text attention_mask Dims:** `{list(symp_mask.shape)}` (expected: `[batch_size, max_length]`)
+*   **Symptom Labels Dims:** `{list(symp_labels.shape)}` (expected: `[batch_size]`)
 
 ---
 

@@ -135,8 +135,10 @@ def test_medical_image_dataset(temp_dir: Path) -> None:
     dataset = MedicalImageDataset(image_paths=[img_path], labels=[3], transform=transform)
     assert len(dataset) == 1
 
-    image_tensor, label = dataset[0]
+    # MedicalImageDataset now returns (tensor, label, path_str)
+    image_tensor, label, path_str = dataset[0]
     assert label == 3
+    assert path_str == str(img_path)
     assert isinstance(image_tensor, torch.Tensor)
     assert image_tensor.shape == (3, 224, 224)
     assert image_tensor.dtype == torch.float32
@@ -162,10 +164,11 @@ def test_symptom_text_dataset() -> None:
     )
     assert len(dataset) == 2
 
-    batch = dataset[0]
-    assert batch["label"] == 0
-    assert torch.equal(batch["input_ids"], torch.tensor([101, 102, 103, 0]))
-    assert torch.equal(batch["attention_mask"], torch.tensor([1, 1, 1, 0]))
+    batch_input_ids, batch_mask, batch_label = dataset[0]
+    # SymptomTextDataset now returns (input_ids, attention_mask, label) tuple
+    assert batch_label == 0
+    assert torch.equal(batch_input_ids, torch.tensor([101, 102, 103, 0]))
+    assert torch.equal(batch_mask, torch.tensor([1, 1, 1, 0]))
     mock_tokenizer.assert_called_once_with(
         "itching, skin rash",
         padding="max_length",
@@ -225,16 +228,16 @@ def test_create_dataloaders_success(
     assert len(splits["val_texts"]) == 3
     assert len(splits["test_texts"]) == 3
 
-    # Check Image Loader batch outputs
-    img_batch, img_labels = next(iter(loaders["train_img_loader"]))
+    # Image loader now returns (tensor, label, path_str) 3-tuple
+    img_batch, img_labels, img_paths = next(iter(loaders["train_img_loader"]))
     assert img_batch.shape == (2, 3, 224, 224)  # batch size is 2, image dimensions targets are 224x224
     assert img_labels.shape == (2,)
 
-    # Check Symptoms Loader batch outputs
-    symp_batch = next(iter(loaders["train_symp_loader"]))
-    assert symp_batch["input_ids"].shape == (2, 64)
-    assert symp_batch["attention_mask"].shape == (2, 64)
-    assert symp_batch["label"].shape == (2,)
+    # Symptom loader now returns (input_ids, attention_mask, label) 3-tuple
+    symp_ids, symp_mask, symp_labels = next(iter(loaders["train_symp_loader"]))
+    assert symp_ids.shape == (2, 64)
+    assert symp_mask.shape == (2, 64)
+    assert symp_labels.shape == (2,)
 
     # Check report generation
     transformer.generate_transformation_report(loaders)
