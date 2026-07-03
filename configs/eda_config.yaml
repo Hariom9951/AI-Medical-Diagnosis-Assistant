@@ -1,0 +1,9 @@
+# EDA and Dataset Verification Configuration for AI Medical Diagnosis Assistant
+raw_images_dir: "data/raw/covid19-radiography-database/COVID-19_Radiography_Dataset"
+raw_symptoms_csv: "data/raw/disease-symptom-description-dataset/dataset.csv"
+reports_dir: "docs/reports"
+plots_dir: "artifacts/eda"
+supported_image_formats:
+  - ".png"
+  - ".jpg"
+  - ".jpeg"

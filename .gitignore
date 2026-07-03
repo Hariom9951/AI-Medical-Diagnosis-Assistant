@@ -35,6 +35,7 @@ ENV/
 # === FastAPI & Web Server ===
 .env
 .env.*
+kaggle.json
 !.env.example
 *.log
 logs/
@@ -72,3 +73,6 @@ mlflow.db
 # === Docker ===
 .docker/
 docker-compose.override.yml
+
+# === Clinical Data ===
+data/

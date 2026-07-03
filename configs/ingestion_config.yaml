@@ -1,0 +1,10 @@
+# Kaggle API configurations for the AI Medical Diagnosis Assistant
+image_dataset_slug: "tawsifurrahman/covid19-radiography-database"
+symptom_dataset_slug: "itachi9604/disease-symptom-description-dataset"
+download_dir: "data/downloads"
+extract_dir: "data/raw"
+processed_dir: "data/processed"
+interim_dir: "data/interim"
+max_retries: 3
+backoff_factor: 2.0
+chunk_size: 1048576  # 1MB chunks for internal operations
