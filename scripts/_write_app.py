@@ -1,19 +1,17 @@
-"""AI Medical Diagnosis Assistant — Streamlit Frontend.
+﻿"""Writes the Streamlit frontend application."""
+import pathlib
+
+APP = r'''"""AI Medical Diagnosis Assistant — Streamlit Frontend.
 
 Integrates two trained inference pipelines:
   - Mode 1: Chest X-ray Diagnosis  (EfficientNet-B0, 4 classes)
   - Mode 2: Symptom Diagnosis       (DistilBERT, 41 classes)
-
-And incorporates:
-  - Professional PDF Medical Report Generator (ReportLab)
-  - Grad-CAM Explainability for Chest X-ray Model (PyTorch Grad-CAM)
 
 Run from project root:
     .\\venv\\Scripts\\streamlit run src/frontend/app.py
 """
 
 import sys
-import time
 from pathlib import Path
 
 # Ensure project root is on sys.path so src.* imports work
@@ -22,7 +20,6 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import streamlit as st
-from src.report.pdf_generator import MedicalReportGenerator
 
 # ── Page config (must be first Streamlit call) ──────────────────────────────
 st.set_page_config(
@@ -349,37 +346,6 @@ st.markdown("""
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# SESSION STATE MANAGEMENT
-# ════════════════════════════════════════════════════════════════════════════
-
-if "image_results" not in st.session_state:
-    st.session_state.image_results = None
-if "image_inference_time" not in st.session_state:
-    st.session_state.image_inference_time = None
-if "image_report_path" not in st.session_state:
-    st.session_state.image_report_path = None
-if "last_image_name" not in st.session_state:
-    st.session_state.last_image_name = None
-
-# Grad-CAM specific states
-if "image_heatmap_img" not in st.session_state:
-    st.session_state.image_heatmap_img = None
-if "image_overlay_img" not in st.session_state:
-    st.session_state.image_overlay_img = None
-if "image_overlay_path" not in st.session_state:
-    st.session_state.image_overlay_path = None
-
-if "nlp_results" not in st.session_state:
-    st.session_state.nlp_results = None
-if "nlp_inference_time" not in st.session_state:
-    st.session_state.nlp_inference_time = None
-if "nlp_report_path" not in st.session_state:
-    st.session_state.nlp_report_path = None
-if "last_nlp_input" not in st.session_state:
-    st.session_state.last_nlp_input = None
-
-
-# ════════════════════════════════════════════════════════════════════════════
 # MODE 1 — CHEST X-RAY DIAGNOSIS
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -412,30 +378,12 @@ if "Chest X-ray" in mode:
 
     with col_preview:
         if uploaded_file is not None:
-            # If the user uploaded a different image, reset previous results
-            if st.session_state.last_image_name != uploaded_file.name:
-                st.session_state.image_results = None
-                st.session_state.image_inference_time = None
-                st.session_state.image_report_path = None
-                st.session_state.image_heatmap_img = None
-                st.session_state.image_overlay_img = None
-                st.session_state.image_overlay_path = None
-                st.session_state.last_image_name = uploaded_file.name
-
             st.image(
                 uploaded_file,
                 caption="Uploaded X-ray",
                 use_container_width=True,
             )
         else:
-            st.session_state.image_results = None
-            st.session_state.image_inference_time = None
-            st.session_state.image_report_path = None
-            st.session_state.image_heatmap_img = None
-            st.session_state.image_overlay_img = None
-            st.session_state.image_overlay_path = None
-            st.session_state.last_image_name = None
-
             st.markdown("""
             <div style="border:2px dashed rgba(255,255,255,0.15);border-radius:12px;
                         padding:3rem;text-align:center;color:rgba(255,255,255,0.3)">
@@ -457,65 +405,17 @@ if "Chest X-ray" in mode:
                 try:
                     pipeline = load_image_pipeline()
                     from PIL import Image as PILImage
-                    pil_img = PILImage.open(uploaded_file).convert("RGB")
-
-                    # Predict
-                    start_time = time.perf_counter()
+                    pil_img = PILImage.open(uploaded_file)
                     result = pipeline.predict(pil_img)
-                    end_time = time.perf_counter()
 
-                    st.session_state.image_inference_time = (end_time - start_time) * 1000
-                    st.session_state.image_results = result
+                    predicted = result["predicted_disease"]
+                    confidence = result["confidence"]
+                    class_probs = result["class_probabilities"]
 
-                    # 1. Generate Grad-CAM heatmap visualization
-                    try:
-                        from src.explainability.gradcam import GradCAMExplainer
-                        from src.explainability.visualizer import GradCAMVisualizer
-
-                        # Build model target index
-                        class_probs = result["class_probabilities"]
-                        sorted_preds = sorted(class_probs.items(), key=lambda x: x[1], reverse=True)[:3]
-                        
-                        # Map prediction label to its class index in model's order
-                        # Model Classes: ["COVID", "Lung_Opacity", "Normal", "Viral Pneumonia"]
-                        pred_disease = result["predicted_disease"]
-                        pred_idx = pipeline.CLASSES.index(pred_disease)
-
-                        # Generate heatmap using preprocessed tensor
-                        img_tensor = pipeline.preprocess(pil_img)
-                        explainer = GradCAMExplainer(model=pipeline.model)
-                        heatmap = explainer.generate_heatmap(img_tensor, target_class_idx=pred_idx)
-
-                        if heatmap is not None:
-                            visualizer = GradCAMVisualizer()
-                            heatmap_img, overlay_img, overlay_path = visualizer.create_visualization(
-                                original_image=pil_img,
-                                heatmap=heatmap,
-                                alpha=0.6
-                            )
-                            st.session_state.image_heatmap_img = heatmap_img
-                            st.session_state.image_overlay_img = overlay_img
-                            st.session_state.image_overlay_path = str(overlay_path)
-                    except Exception as gcam_err:
-                        st.warning(f"Grad-CAM explanation generation failed: {gcam_err}")
-
-                    # 2. Generate professional PDF report
-                    report_gen = MedicalReportGenerator()
-                    predictions_list = [
-                        {"rank": i + 1, "disease": k, "confidence": v}
-                        for i, (k, v) in enumerate(sorted_preds)
-                    ]
-
-                    pdf_path = report_gen.generate_report(
-                        mode="Chest X-ray Diagnosis",
-                        user_input=f"Uploaded Image: {uploaded_file.name}",
-                        predicted_disease=result["predicted_disease"],
-                        confidence=result["confidence"],
-                        predictions=predictions_list,
-                        model_used="EfficientNet-B0",
-                        inference_time_ms=st.session_state.image_inference_time
-                    )
-                    st.session_state.image_report_path = str(pdf_path)
+                    # Sort all classes by probability descending; show top 3
+                    sorted_preds = sorted(
+                        class_probs.items(), key=lambda x: x[1], reverse=True
+                    )[:3]
 
                 except Exception as e:
                     st.markdown(
@@ -524,96 +424,62 @@ if "Chest X-ray" in mode:
                     )
                     st.stop()
 
-    # ── Results display ─────────────────────────────────────────────
-    if st.session_state.image_results is not None:
-        result = st.session_state.image_results
-        predicted = result["predicted_disease"]
-        confidence = result["confidence"]
-        class_probs = result["class_probabilities"]
-        inference_time_ms = st.session_state.image_inference_time
-        pdf_path_str = st.session_state.image_report_path
+            # ── Results display ─────────────────────────────────────────────
+            st.markdown('<p class="section-header">📊 Diagnosis Results</p>', unsafe_allow_html=True)
 
-        sorted_preds = sorted(
-            class_probs.items(), key=lambda x: x[1], reverse=True
-        )[:3]
+            # Top metrics row
+            m1, m2, m3 = st.columns(3)
+            with m1:
+                st.markdown(f"""
+                <div class="metric-tile">
+                    <div class="metric-label">Predicted Condition</div>
+                    <div class="disease-name">{predicted}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with m2:
+                conf_pct = f"{confidence*100:.2f}%"
+                col = confidence_color(confidence)
+                st.markdown(f"""
+                <div class="metric-tile">
+                    <div class="metric-label">Confidence Score</div>
+                    <div class="metric-value" style="color:{col}">{conf_pct}</div>
+                    <div class="metric-sub">Model certainty</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with m3:
+                classes_str = " · ".join([p[0] for p in sorted_preds[:3]])
+                st.markdown(f"""
+                <div class="metric-tile">
+                    <div class="metric-label">Top Conditions</div>
+                    <div style="color:rgba(255,255,255,0.8);font-size:0.85rem;
+                                font-weight:500;margin-top:0.4rem">{classes_str}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-        st.markdown('<p class="section-header">📊 Diagnosis Results</p>', unsafe_allow_html=True)
-
-        # Top metrics row
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            st.markdown(f"""
-            <div class="metric-tile">
-                <div class="metric-label">Predicted Condition</div>
-                <div class="disease-name">{predicted}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with m2:
-            conf_pct = f"{confidence*100:.2f}%"
-            col = confidence_color(confidence)
-            st.markdown(f"""
-            <div class="metric-tile">
-                <div class="metric-label">Confidence Score</div>
-                <div class="metric-value" style="color:{col}">{conf_pct}</div>
-                <div class="metric-sub">Model certainty</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with m3:
-            st.markdown(f"""
-            <div class="metric-tile">
-                <div class="metric-label">Inference Time</div>
-                <div class="metric-value" style="font-size:1.6rem">{inference_time_ms:.1f} ms</div>
-                <div class="metric-sub">EfficientNet-B0 execution</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # Top-3 prediction bars
-        st.markdown(
-            '<p style="color:rgba(255,255,255,0.7);font-weight:600;'
-            'margin-bottom:0.8rem">Top-3 Class Probabilities</p>',
-            unsafe_allow_html=True,
-        )
-        for rank, (disease, prob) in enumerate(sorted_preds, start=1):
-            render_prediction_bar(rank, disease, prob)
-
-        # ── Grad-CAM AI Explanation Block ─────────────────────────────────────
-        if st.session_state.image_heatmap_img is not None:
             st.markdown("<br>", unsafe_allow_html=True)
-            show_explanation = st.checkbox("🔍 Show AI Explanation (Grad-CAM)")
-            
-            if show_explanation:
-                st.markdown(
-                    '<p style="color:rgba(255,255,255,0.7);font-weight:600;'
-                    'margin-bottom:0.8rem">Grad-CAM Visual Attention Mapping</p>',
-                    unsafe_allow_html=True,
-                )
-                
-                # Show 3 columns: Original, Heatmap, Overlay
-                col_orig, col_heat, col_over = st.columns(3)
-                with col_orig:
-                    # Retrieve the original uploaded image file directly to display
-                    from PIL import Image as PILImage
-                    pil_img = PILImage.open(uploaded_file)
-                    st.image(pil_img, caption="Original X-ray Scan", use_container_width=True)
-                with col_heat:
-                    st.image(st.session_state.image_heatmap_img, caption="Attention Heatmap (Conv2D Activation)", use_container_width=True)
-                with col_over:
-                    st.image(st.session_state.image_overlay_img, caption=f"Attention Overlay on {predicted}", use_container_width=True)
 
-        # Download Report Block
-        if pdf_path_str and Path(pdf_path_str).exists():
-            st.markdown("<br>", unsafe_allow_html=True)
-            with open(pdf_path_str, "rb") as f:
-                pdf_bytes = f.read()
+            # Top-3 prediction bars
+            st.markdown(
+                '<p style="color:rgba(255,255,255,0.7);font-weight:600;'
+                'margin-bottom:0.8rem">Top-3 Class Probabilities</p>',
+                unsafe_allow_html=True,
+            )
+            for rank, (disease, prob) in enumerate(sorted_preds, start=1):
+                render_prediction_bar(rank, disease, prob)
 
-            st.download_button(
-                label="📥 Download Professional PDF Medical Report",
-                data=pdf_bytes,
-                file_name=Path(pdf_path_str).name,
-                mime="application/pdf",
-                use_container_width=True,
+            # Confidence level badge
+            if confidence >= 0.75:
+                level, badge_col = "High Confidence", "#34d399"
+            elif confidence >= 0.45:
+                level, badge_col = "Moderate Confidence", "#fbbf24"
+            else:
+                level, badge_col = "Low Confidence", "#f87171"
+
+            st.markdown(
+                f'<div style="margin-top:1rem;padding:0.6rem 1rem;background:rgba(255,255,255,0.05);'
+                f'border-radius:8px;color:{badge_col};font-weight:600;font-size:0.9rem">'
+                f'⚡ {level} — {confidence*100:.1f}%</div>',
+                unsafe_allow_html=True,
             )
 
 
@@ -665,28 +531,16 @@ else:
         label_visibility="collapsed",
     )
 
-    # Detect if NLP text changed to clear outdated results
-    cleaned_input = symptom_input.strip()
-    if cleaned_input != st.session_state.last_nlp_input:
-        st.session_state.nlp_results = None
-        st.session_state.nlp_inference_time = None
-        st.session_state.nlp_report_path = None
-        st.session_state.last_nlp_input = cleaned_input
-
     col_run, col_clear = st.columns([3, 1])
     with col_run:
         run_nlp = st.button("🔍  Diagnose Symptoms", use_container_width=True)
     with col_clear:
         if st.button("✕  Clear", use_container_width=True):
-            st.session_state.nlp_results = None
-            st.session_state.nlp_inference_time = None
-            st.session_state.nlp_report_path = None
-            st.session_state.last_nlp_input = None
-            st.rerun()
+            symptom_input = ""
 
     # ── Run inference ────────────────────────────────────────────────────────
     if run_nlp:
-        if not cleaned_input:
+        if not symptom_input or not symptom_input.strip():
             st.markdown("""
             <div class="result-card-error">
             ⚠️ <b>No symptoms entered.</b> Please describe your symptoms before running analysis.
@@ -696,26 +550,12 @@ else:
             with st.spinner("Loading NLP model & running inference..."):
                 try:
                     pipeline = load_nlp_pipeline()
+                    result = pipeline.predict(symptom_input.strip(), top_k=5)
 
-                    start_time = time.perf_counter()
-                    result = pipeline.predict(cleaned_input, top_k=5)
-                    end_time = time.perf_counter()
-
-                    st.session_state.nlp_inference_time = (end_time - start_time) * 1000
-                    st.session_state.nlp_results = result
-
-                    # Generate professional PDF report
-                    report_gen = MedicalReportGenerator()
-                    pdf_path = report_gen.generate_report(
-                        mode="Symptom Diagnosis",
-                        user_input=cleaned_input,
-                        predicted_disease=result["predicted_disease"],
-                        confidence=result["confidence"],
-                        predictions=result["top_predictions"],
-                        model_used="DistilBERT",
-                        inference_time_ms=st.session_state.nlp_inference_time
-                    )
-                    st.session_state.nlp_report_path = str(pdf_path)
+                    predicted = result["predicted_disease"]
+                    confidence = result["confidence"]
+                    top5 = result["top_predictions"]
+                    preprocessed = result["preprocessed_text"]
 
                 except Exception as e:
                     st.markdown(
@@ -724,75 +564,68 @@ else:
                     )
                     st.stop()
 
-    # ── Results display ─────────────────────────────────────────────
-    if st.session_state.nlp_results is not None:
-        result = st.session_state.nlp_results
-        predicted = result["predicted_disease"]
-        confidence = result["confidence"]
-        top5 = result["top_predictions"]
-        preprocessed = result["preprocessed_text"]
-        inference_time_ms = st.session_state.nlp_inference_time
-        pdf_path_str = st.session_state.nlp_report_path
+            # ── Results display ─────────────────────────────────────────────
+            st.markdown('<p class="section-header">📊 Diagnosis Results</p>', unsafe_allow_html=True)
 
-        st.markdown('<p class="section-header">📊 Diagnosis Results</p>', unsafe_allow_html=True)
+            m1, m2, m3 = st.columns(3)
+            with m1:
+                st.markdown(f"""
+                <div class="metric-tile">
+                    <div class="metric-label">Predicted Condition</div>
+                    <div class="disease-name">{predicted}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with m2:
+                conf_pct = f"{confidence*100:.2f}%"
+                col = confidence_color(confidence)
+                st.markdown(f"""
+                <div class="metric-tile">
+                    <div class="metric-label">Confidence Score</div>
+                    <div class="metric-value" style="color:{col}">{conf_pct}</div>
+                    <div class="metric-sub">Model certainty</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with m3:
+                num_words = len(symptom_input.split())
+                st.markdown(f"""
+                <div class="metric-tile">
+                    <div class="metric-label">Input Analysed</div>
+                    <div class="metric-value" style="font-size:1.4rem">{num_words}</div>
+                    <div class="metric-sub">words processed</div>
+                </div>
+                """, unsafe_allow_html=True)
 
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            st.markdown(f"""
-            <div class="metric-tile">
-                <div class="metric-label">Predicted Condition</div>
-                <div class="disease-name">{predicted}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with m2:
-            conf_pct = f"{confidence*100:.2f}%"
-            col = confidence_color(confidence)
-            st.markdown(f"""
-            <div class="metric-tile">
-                <div class="metric-label">Confidence Score</div>
-                <div class="metric-value" style="color:{col}">{conf_pct}</div>
-                <div class="metric-sub">Model certainty</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with m3:
-            st.markdown(f"""
-            <div class="metric-tile">
-                <div class="metric-label">Inference Time</div>
-                <div class="metric-value" style="font-size:1.6rem">{inference_time_ms:.1f} ms</div>
-                <div class="metric-sub">DistilBERT execution</div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
+            # Preprocessed text expander
+            with st.expander("🔤 View preprocessed input"):
+                st.markdown(
+                    f'<code style="color:#a5b4fc;font-size:0.9rem">{preprocessed}</code>',
+                    unsafe_allow_html=True,
+                )
 
-        # Preprocessed text expander
-        with st.expander("🔤 View preprocessed input"):
+            # Top-5 prediction bars
             st.markdown(
-                f'<code style="color:#a5b4fc;font-size:0.9rem">{preprocessed}</code>',
+                '<p style="color:rgba(255,255,255,0.7);font-weight:600;'
+                'margin-bottom:0.8rem">Top-5 Disease Predictions</p>',
                 unsafe_allow_html=True,
             )
+            for pred in top5:
+                render_prediction_bar(pred["rank"], pred["disease"], pred["confidence"])
 
-        # Top-5 prediction bars
-        st.markdown(
-            '<p style="color:rgba(255,255,255,0.7);font-weight:600;'
-            'margin-bottom:0.8rem">Top-5 Disease Predictions</p>',
-            unsafe_allow_html=True,
-        )
-        for pred in top5:
-            render_prediction_bar(pred["rank"], pred["disease"], pred["confidence"])
+            # Confidence badge
+            if confidence >= 0.75:
+                level, badge_col = "High Confidence", "#34d399"
+            elif confidence >= 0.45:
+                level, badge_col = "Moderate Confidence", "#fbbf24"
+            else:
+                level, badge_col = "Low Confidence — Consider alternative diagnoses", "#f87171"
 
-        # Download Report Block
-        if pdf_path_str and Path(pdf_path_str).exists():
-            st.markdown("<br>", unsafe_allow_html=True)
-            with open(pdf_path_str, "rb") as f:
-                pdf_bytes = f.read()
-
-            st.download_button(
-                label="📥 Download Professional PDF Medical Report",
-                data=pdf_bytes,
-                file_name=Path(pdf_path_str).name,
-                mime="application/pdf",
-                use_container_width=True,
+            st.markdown(
+                f'<div style="margin-top:1rem;padding:0.6rem 1rem;background:rgba(255,255,255,0.05);'
+                f'border-radius:8px;color:{badge_col};font-weight:600;font-size:0.9rem">'
+                f'⚡ {level} — {confidence*100:.1f}%</div>',
+                unsafe_allow_html=True,
             )
 
 
@@ -804,3 +637,7 @@ It is <b>not</b> a substitute for professional medical advice, diagnosis, or tre
 Always consult a qualified healthcare provider.
 </div>
 """, unsafe_allow_html=True)
+'''
+
+pathlib.Path("src/frontend/app.py").write_text(APP, encoding="utf-8")
+print("src/frontend/app.py written OK")
