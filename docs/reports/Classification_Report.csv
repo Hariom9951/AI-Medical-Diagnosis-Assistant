@@ -1,0 +1,5 @@
+Class,Precision,Recall,F1-Score,Support
+COVID,1.0000,0.3333,0.5000,3
+Lung_Opacity,0.6087,0.8750,0.7179,16
+Normal,0.7600,0.7308,0.7451,26
+Viral Pneumonia,1.0000,0.2000,0.3333,5

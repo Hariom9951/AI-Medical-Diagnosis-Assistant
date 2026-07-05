@@ -1,0 +1,39 @@
+Class,Precision,Recall,F1-Score,Support
+AIDS,0.0000,0.0000,0.0000,0
+Acne,0.0000,0.0000,0.0000,0
+Alcoholic hepatitis,0.0000,0.0000,0.0000,1
+Allergy,0.0000,0.0000,0.0000,2
+Arthritis,0.0000,0.0000,0.0000,0
+Bronchial Asthma,0.0000,0.0000,0.0000,0
+Cervical spondylosis,0.0000,0.0000,0.0000,1
+Chicken pox,0.0000,0.0000,0.0000,1
+Chronic cholestasis,0.0000,0.0000,0.0000,1
+Common Cold,0.0000,0.0000,0.0000,2
+Dengue,0.0000,0.0000,0.0000,0
+Diabetes ,0.0000,0.0000,0.0000,1
+Drug Reaction,0.0000,0.0000,0.0000,0
+Fungal infection,0.0000,0.0000,0.0000,0
+GERD,0.0000,0.0000,0.0000,2
+Gastroenteritis,0.0000,0.0000,0.0000,0
+Heart attack,0.0000,0.0000,0.0000,1
+Hepatitis B,0.0800,1.0000,0.1481,2
+Hepatitis C,0.0000,0.0000,0.0000,2
+Hepatitis D,0.0000,0.0000,0.0000,2
+Hepatitis E,0.0000,0.0000,0.0000,0
+Hypertension ,0.0000,0.0000,0.0000,2
+Hyperthyroidism,0.0000,0.0000,0.0000,0
+Hypoglycemia,0.0000,0.0000,0.0000,0
+Hypothyroidism,0.0000,0.0000,0.0000,1
+Impetigo,0.0000,0.0000,0.0000,0
+Jaundice,0.0000,0.0000,0.0000,2
+Malaria,0.0000,0.0000,0.0000,0
+Migraine,0.0000,0.0000,0.0000,0
+Osteoarthristis,0.0000,0.0000,0.0000,2
+Peptic ulcer diseae,0.0000,0.0000,0.0000,1
+Pneumonia,0.0000,0.0000,0.0000,2
+Psoriasis,0.0000,0.0000,0.0000,0
+Tuberculosis,0.0000,0.0000,0.0000,1
+Typhoid,0.0000,0.0000,0.0000,1
+Urinary tract infection,0.0000,0.0000,0.0000,0
+Varicose veins,0.0000,0.0000,0.0000,0
+hepatitis A,0.0000,0.0000,0.0000,0

@@ -1,5 +1,5 @@
-# Training Configuration for AI Medical Diagnosis Assistant - Phase 14
-# EfficientNet-B0 Image Classifier
+# Training Configuration for AI Medical Diagnosis Assistant
+# EfficientNet-B0 Image Classifier - Optimized
 
 # ──────────────────────────────────────────────
 # Model Architecture
@@ -22,16 +22,18 @@ momentum: 0.9              # Used only when optimizer = sgd
 # ──────────────────────────────────────────────
 scheduler: "cosine"        # cosine | step | plateau | none
 step_size: 7               # StepLR: decay LR every N epochs
-gamma: 0.1                 # StepLR / ExponentialLR decay factor
+gamma: 0.1                 # StepLR decay factor
 t_max: 10                  # CosineAnnealingLR: half period
 
 # ──────────────────────────────────────────────
 # Training Loop
 # ──────────────────────────────────────────────
-epochs: 20
+epochs: 25                 # Increased training epochs (20-30)
 batch_size: 32
 early_stopping_patience: 5
 early_stopping_min_delta: 0.001
+max_grad_norm: 1.0         # Gradient clipping norm
+use_amp: true              # Mixed precision training (AMP)
 
 # ──────────────────────────────────────────────
 # Paths

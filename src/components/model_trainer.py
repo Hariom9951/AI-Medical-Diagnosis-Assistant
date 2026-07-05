@@ -68,6 +68,8 @@ class ImageClassifierConfig:
     batch_size: int
     early_stopping_patience: int
     early_stopping_min_delta: float
+    max_grad_norm: float
+    use_amp: bool
 
     # Paths
     checkpoint_dir: Path
@@ -116,6 +118,8 @@ class ImageClassifierConfig:
                 batch_size=int(cfg["batch_size"]),
                 early_stopping_patience=int(cfg["early_stopping_patience"]),
                 early_stopping_min_delta=float(cfg["early_stopping_min_delta"]),
+                max_grad_norm=float(cfg.get("max_grad_norm", 1.0)),
+                use_amp=bool(cfg.get("use_amp", False)),
                 checkpoint_dir=Path(cfg["checkpoint_dir"]),
                 best_model_path=Path(cfg["best_model_path"]),
                 mlflow_tracking_uri=str(cfg["mlflow_tracking_uri"]),
@@ -277,11 +281,12 @@ class ImageClassifierTrainer:
     - MLflow parameter and metric logging
     """
 
-    def __init__(self, config_path: Path) -> None:
+    def __init__(self, config_path: Path, class_weights: Optional[List[float]] = None) -> None:
         """Initializes the trainer.
 
         Args:
             config_path (Path): Path to training_config.yaml.
+            class_weights (Optional[List[float]]): Optional class weights to handle imbalance.
         """
         self.config: Final[ImageClassifierConfig] = ImageClassifierConfig.from_yaml(config_path)
         self.device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -294,13 +299,21 @@ class ImageClassifierTrainer:
             dropout=self.config.dropout,
         ).to(self.device)
 
-        self.criterion = nn.CrossEntropyLoss()
+        if class_weights is not None:
+            weights_tensor = torch.tensor(class_weights, dtype=torch.float32).to(self.device)
+            self.criterion = nn.CrossEntropyLoss(weight=weights_tensor)
+            logger.info("Using weighted CrossEntropyLoss for class imbalance.")
+        else:
+            self.criterion = nn.CrossEntropyLoss()
+
         self.optimizer: Optimizer = self.build_optimizer()
         self.scheduler: Optional[LRScheduler | ReduceLROnPlateau] = self.build_scheduler()
         self.early_stopping = EarlyStopping(
             patience=self.config.early_stopping_patience,
             min_delta=self.config.early_stopping_min_delta,
         )
+
+        self.scaler = torch.cuda.amp.GradScaler(enabled=self.config.use_amp and self.device.type == "cuda")
 
         # Ensure checkpoint directory exists
         self.config.checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -389,10 +402,24 @@ class ImageClassifierTrainer:
             labels = batch_labels.to(self.device)
 
             self.optimizer.zero_grad()
-            logits = self.model(images)
-            loss = self.criterion(logits, labels)
-            loss.backward()
-            self.optimizer.step()
+            
+            # Mixed Precision autocast
+            with torch.cuda.amp.autocast(enabled=self.config.use_amp and self.device.type == "cuda"):
+                logits = self.model(images)
+                loss = self.criterion(logits, labels)
+
+            # Mixed Precision scaling and backward pass
+            self.scaler.scale(loss).backward()
+            
+            # Unscale before clipping
+            self.scaler.unscale_(self.optimizer)
+            
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.config.max_grad_norm)
+            
+            # Step and update scaler
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
 
             total_loss += loss.item() * images.size(0)
             preds = logits.argmax(dim=1)
@@ -509,6 +536,7 @@ class ImageClassifierTrainer:
         train_loader: DataLoader,
         val_loader: DataLoader,
         max_epochs: Optional[int] = None,
+        resume_from_checkpoint: Optional[Path] = None,
     ) -> List[Dict[str, float]]:
         """Full training loop with early stopping, best model saving, and MLflow logging.
 
@@ -516,13 +544,23 @@ class ImageClassifierTrainer:
             train_loader (DataLoader): Training DataLoader.
             val_loader (DataLoader): Validation DataLoader.
             max_epochs (Optional[int]): Override epoch count (useful for quick tests).
+            resume_from_checkpoint (Optional[Path]): Checkpoint path to resume from.
 
         Returns:
             List[Dict[str, float]]: Per-epoch metric history.
         """
         epochs = max_epochs if max_epochs is not None else self.config.epochs
         best_val_acc: float = 0.0
+        start_epoch: int = 0
         history: List[Dict[str, float]] = []
+
+        # Resume logic
+        if resume_from_checkpoint is not None:
+            loaded_ckpt = self.load_checkpoint(resume_from_checkpoint)
+            start_epoch = loaded_ckpt["epoch"] + 1
+            if "metrics" in loaded_ckpt:
+                best_val_acc = loaded_ckpt["metrics"].get("val_acc", 0.0)
+            logger.info("Resuming image training from epoch %d. Best validation accuracy: %.4f", start_epoch, best_val_acc)
 
         # ── MLflow setup ──────────────────────────────────────────────────
         mlflow.set_tracking_uri(self.config.mlflow_tracking_uri)
@@ -543,6 +581,8 @@ class ImageClassifierTrainer:
                 "dropout": self.config.dropout,
                 "epochs": epochs,
                 "early_stopping_patience": self.config.early_stopping_patience,
+                "max_grad_norm": self.config.max_grad_norm,
+                "use_amp": self.config.use_amp,
             })
 
             summary = self.model.model_summary()
@@ -552,19 +592,21 @@ class ImageClassifierTrainer:
             })
 
             # ── Training Loop ─────────────────────────────────────────────
-            for epoch in range(epochs):
+            for epoch in range(start_epoch, epochs):
                 epoch_start = time.time()
 
                 train_loss, train_acc = self.train_one_epoch(train_loader)
                 val_loss, val_acc = self.validate_one_epoch(val_loader)
 
                 epoch_time = time.time() - epoch_start
+                current_lr = self.optimizer.param_groups[0]["lr"]
 
                 metrics: Dict[str, float] = {
                     "train_loss": round(train_loss, 6),
                     "train_acc": round(train_acc, 6),
                     "val_loss": round(val_loss, 6),
                     "val_acc": round(val_acc, 6),
+                    "learning_rate": round(current_lr, 8),
                     "epoch_time_s": round(epoch_time, 2),
                 }
                 history.append(metrics)
@@ -577,10 +619,11 @@ class ImageClassifierTrainer:
 
                 logger.info(
                     "Epoch [%02d/%02d] | Train Loss: %.4f | Train Acc: %.4f | "
-                    "Val Loss: %.4f | Val Acc: %.4f | Time: %.1fs",
+                    "Val Loss: %.4f | Val Acc: %.4f | LR: %.6f | Time: %.1fs",
                     epoch + 1, epochs,
                     train_loss, train_acc,
                     val_loss, val_acc,
+                    current_lr,
                     epoch_time,
                 )
 

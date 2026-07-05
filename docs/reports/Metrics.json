@@ -1,0 +1,37 @@
+{
+    "test_accuracy": 0.7,
+    "macro_roc_auc": 0.8190936487115305,
+    "weighted_roc_auc": 0.8548938256153525,
+    "macro_f1": 0.5740950226244345,
+    "macro_precision": 0.8421739130434782,
+    "macro_recall": 0.534775641025641,
+    "weighted_f1": 0.68052790346908,
+    "weighted_precision": 0.7499826086956523,
+    "weighted_recall": 0.7,
+    "class_metrics": {
+        "COVID": {
+            "precision": 1.0,
+            "recall": 0.3333333333333333,
+            "f1-score": 0.5,
+            "support": 3
+        },
+        "Lung_Opacity": {
+            "precision": 0.6086956521739131,
+            "recall": 0.875,
+            "f1-score": 0.717948717948718,
+            "support": 16
+        },
+        "Normal": {
+            "precision": 0.76,
+            "recall": 0.7307692307692307,
+            "f1-score": 0.7450980392156863,
+            "support": 26
+        },
+        "Viral Pneumonia": {
+            "precision": 1.0,
+            "recall": 0.2,
+            "f1-score": 0.3333333333333333,
+            "support": 5
+        }
+    }
+}
