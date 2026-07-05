@@ -1,0 +1,108 @@
+# ============================================================
+# .dockerignore — AI Medical Diagnosis Assistant
+# ============================================================
+# Keeps the Docker build context lean by excluding files that
+# are NOT needed inside the container image.
+# ============================================================
+
+# ── Version control ──────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+
+# ── Python dev artefacts ─────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual environments ─────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+.env
+.env.*
+!.env.example
+
+# ── Testing & coverage ───────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+tests/
+test_*.py
+*_test.py
+
+# ── Type-checking caches ─────────────────────────────────────
+.mypy_cache/
+.pytype/
+
+# ── IDE / editor configs ─────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.swp
+*.sln
+
+# ── OS junk ──────────────────────────────────────────────────
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+*.lnk
+
+# ── DVC (Data Version Control) ───────────────────────────────
+.dvc/cache/
+.dvc/tmp/
+.dvc/config.local
+dvc.yaml
+dvc.lock
+
+# ── MLflow / experiment tracking ─────────────────────────────
+mlruns/
+mlflow.db
+
+# ── Notebooks & docs ─────────────────────────────────────────
+notebooks/
+docs/
+
+# ── Scripts (training / EDA — not needed at runtime) ────────
+scripts/
+
+# ── Raw training data (large; not needed for inference) ──────
+data/raw/
+data/interim/
+data/downloads/
+data/processed/transformed/
+
+# ── Existing EDA / evaluation artefacts (re-created at run) ──
+artifacts/eda/
+artifacts/evaluation/
+artifacts/gradcam/
+
+# ── Package distribution build dirs ──────────────────────────
+dist/
+build/
+*.egg-info/
+ai_medical_diagnosis_assistant.egg-info/
+
+# ── Logs ─────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── Streamlit secrets ────────────────────────────────────────
+.streamlit/secrets.toml
+
+# ── Docker build overrides (prevent recursive context) ───────
+docker-compose.override.yml
+.docker/
+
+# ── Large binary training data (safety net) ──────────────────
+*.zip
+*.tar.gz
+*.tar
+*.gz
