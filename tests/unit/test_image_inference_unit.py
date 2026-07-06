@@ -45,30 +45,48 @@ mlflow_experiment_name: "test-experiment"
     return cfg_file
 
 
-@patch("src.inference.predict.load_best_checkpoint")
+@patch("src.inference.predict.torch.load")
+@patch("src.inference.predict.EfficientNetClassifier")
 def test_pipeline_initialization(
-    mock_load_ckpt: MagicMock, test_config: Path, tmp_path: Path
+    mock_classifier: MagicMock, mock_load: MagicMock, test_config: Path, tmp_path: Path
 ) -> None:
     """Verifies that the inference pipeline initializes config, model, and loads checkpoint."""
-    mock_load_ckpt.return_value = {"epoch": 1, "metrics": {"val_loss": 0.2}}
+    mock_load.return_value = {
+        "epoch": 1,
+        "metrics": {"val_loss": 0.2, "val_acc": 0.8},
+        "model_state_dict": {"backbone.features.0.weight": torch.zeros(1)},
+    }
+    mock_model = MagicMock()
+    mock_model.state_dict.return_value = {"backbone.features.0.weight": torch.zeros(1)}
+    mock_classifier.return_value = mock_model
 
+    ckpt_path = tmp_path / "best_model.pth"
     pipeline = ImageInferencePipeline(
-        config_path=test_config, checkpoint_dir=tmp_path
+        config_path=test_config, checkpoint_path=ckpt_path
     )
 
-    assert pipeline.checkpoint_dir == tmp_path
+    assert pipeline.checkpoint_info["checkpoint_path"] == ckpt_path
     assert pipeline.config.num_classes == 4
-    mock_load_ckpt.assert_called_once()
+    mock_load.assert_called_once_with(ckpt_path, map_location=pipeline.device, weights_only=False)
 
 
-@patch("src.inference.predict.load_best_checkpoint")
+@patch("src.inference.predict.torch.load")
+@patch("src.inference.predict.EfficientNetClassifier")
 def test_preprocess_inputs(
-    mock_load_ckpt: MagicMock, test_config: Path, tmp_path: Path
+    mock_classifier: MagicMock, mock_load: MagicMock, test_config: Path, tmp_path: Path
 ) -> None:
     """Verifies preprocessing works for NumPy array, PIL image, and grayscale inputs."""
-    mock_load_ckpt.return_value = {"epoch": 1, "metrics": {"val_loss": 0.2}}
+    mock_load.return_value = {
+        "epoch": 1,
+        "metrics": {"val_loss": 0.2, "val_acc": 0.8},
+        "model_state_dict": {"backbone.features.0.weight": torch.zeros(1)},
+    }
+    mock_model = MagicMock()
+    mock_model.state_dict.return_value = {"backbone.features.0.weight": torch.zeros(1)}
+    mock_classifier.return_value = mock_model
+
     pipeline = ImageInferencePipeline(
-        config_path=test_config, checkpoint_dir=tmp_path
+        config_path=test_config, checkpoint_path=tmp_path / "best_model.pth"
     )
 
     # 1. Test NumPy image input (H, W, C)
@@ -88,14 +106,23 @@ def test_preprocess_inputs(
     assert tensor3.shape == (1, 3, 224, 224)
 
 
-@patch("src.inference.predict.load_best_checkpoint")
+@patch("src.inference.predict.torch.load")
+@patch("src.inference.predict.EfficientNetClassifier")
 def test_predict_flow(
-    mock_load_ckpt: MagicMock, test_config: Path, tmp_path: Path
+    mock_classifier: MagicMock, mock_load: MagicMock, test_config: Path, tmp_path: Path
 ) -> None:
     """Verifies predict returns predicted disease, confidence, and class probabilities."""
-    mock_load_ckpt.return_value = {"epoch": 1, "metrics": {"val_loss": 0.2}}
+    mock_load.return_value = {
+        "epoch": 1,
+        "metrics": {"val_loss": 0.2, "val_acc": 0.8},
+        "model_state_dict": {"backbone.features.0.weight": torch.zeros(1)},
+    }
+    mock_model = MagicMock()
+    mock_model.state_dict.return_value = {"backbone.features.0.weight": torch.zeros(1)}
+    mock_classifier.return_value = mock_model
+
     pipeline = ImageInferencePipeline(
-        config_path=test_config, checkpoint_dir=tmp_path
+        config_path=test_config, checkpoint_path=tmp_path / "best_model.pth"
     )
 
     # Mock the forward pass of model to return constant logits where COVID wins
@@ -111,14 +138,23 @@ def test_predict_flow(
     assert len(res["class_probabilities"]) == 4
 
 
-@patch("src.inference.predict.load_best_checkpoint")
+@patch("src.inference.predict.torch.load")
+@patch("src.inference.predict.EfficientNetClassifier")
 def test_predict_invalid_image_path(
-    mock_load_ckpt: MagicMock, test_config: Path, tmp_path: Path
+    mock_classifier: MagicMock, mock_load: MagicMock, test_config: Path, tmp_path: Path
 ) -> None:
     """Verifies validation error is raised if input image file path does not exist."""
-    mock_load_ckpt.return_value = {"epoch": 1, "metrics": {"val_loss": 0.2}}
+    mock_load.return_value = {
+        "epoch": 1,
+        "metrics": {"val_loss": 0.2, "val_acc": 0.8},
+        "model_state_dict": {"backbone.features.0.weight": torch.zeros(1)},
+    }
+    mock_model = MagicMock()
+    mock_model.state_dict.return_value = {"backbone.features.0.weight": torch.zeros(1)}
+    mock_classifier.return_value = mock_model
+
     pipeline = ImageInferencePipeline(
-        config_path=test_config, checkpoint_dir=tmp_path
+        config_path=test_config, checkpoint_path=tmp_path / "best_model.pth"
     )
 
     with pytest.raises(AppValidationError) as exc:
@@ -126,14 +162,23 @@ def test_predict_invalid_image_path(
     assert "does not exist" in str(exc.value)
 
 
-@patch("src.inference.predict.load_best_checkpoint")
+@patch("src.inference.predict.torch.load")
+@patch("src.inference.predict.EfficientNetClassifier")
 def test_predict_unsupported_type(
-    mock_load_ckpt: MagicMock, test_config: Path, tmp_path: Path
+    mock_classifier: MagicMock, mock_load: MagicMock, test_config: Path, tmp_path: Path
 ) -> None:
     """Verifies validation error is raised when input image type is not supported."""
-    mock_load_ckpt.return_value = {"epoch": 1, "metrics": {"val_loss": 0.2}}
+    mock_load.return_value = {
+        "epoch": 1,
+        "metrics": {"val_loss": 0.2, "val_acc": 0.8},
+        "model_state_dict": {"backbone.features.0.weight": torch.zeros(1)},
+    }
+    mock_model = MagicMock()
+    mock_model.state_dict.return_value = {"backbone.features.0.weight": torch.zeros(1)}
+    mock_classifier.return_value = mock_model
+
     pipeline = ImageInferencePipeline(
-        config_path=test_config, checkpoint_dir=tmp_path
+        config_path=test_config, checkpoint_path=tmp_path / "best_model.pth"
     )
 
     with pytest.raises(AppValidationError) as exc:

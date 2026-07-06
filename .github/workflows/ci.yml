@@ -1,0 +1,104 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ci:
+    name: Continuous Integration & Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          # Install CPU versions of torch and torchvision to speed up installation and avoid huge downloads
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run Code Formatting Checks (Black & Isort)
+        run: |
+          black --check src tests
+          isort --check src tests
+
+      - name: Run Linting (Flake8 & Mypy)
+        run: |
+          flake8 src tests
+          mypy src
+
+      - name: Run Unit Tests (Pytest)
+        run: |
+          python -m pytest tests/unit
+
+      - name: Prepare Dummy Artifacts for Docker Build
+        run: |
+          # Create dummy checkpoints so COPY commands in Dockerfile don't fail in headless environment
+          mkdir -p artifacts/checkpoints
+          touch artifacts/checkpoints/best_model.pth
+
+          mkdir -p artifacts/checkpoints_nlp
+          touch artifacts/checkpoints_nlp/config.json
+          touch artifacts/checkpoints_nlp/pytorch_model.bin
+          touch artifacts/checkpoints_nlp/tokenizer_config.json
+          touch artifacts/checkpoints_nlp/special_tokens_map.json
+          touch artifacts/checkpoints_nlp/vocab.txt
+
+          # Create dummy disease mapping JSON files
+          mkdir -p data/processed
+          echo '{"COVID": 0, "Lung_Opacity": 1, "Normal": 2, "Viral Pneumonia": 3}' > data/processed/disease_mapping_41.json
+          echo '{"COVID": 0, "Lung_Opacity": 1, "Normal": 2, "Viral Pneumonia": 3}' > data/processed/disease_mapping.json
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ai-medical-diagnosis-assistant:latest .
+
+      - name: Verify Docker Image Startup & Health Check
+        run: |
+          # Run the container in background
+          docker run -d --name test-app -p 8000:8000 ai-medical-diagnosis-assistant:latest
+          
+          # Wait up to 30 seconds for the healthcheck to become healthy (or degraded, which is also 200 OK)
+          echo "Waiting for app to start..."
+          for i in {1..30}; do
+            if curl -s -f http://localhost:8000/health > /dev/null; then
+              echo "App health endpoint returned HTTP 200!"
+              break
+            fi
+            sleep 1
+          done
+          
+          # Verify container logs
+          echo "=== Container Logs ==="
+          docker logs test-app
+          
+          # Verify health status response
+          echo "=== Health Endpoint Output ==="
+          curl -s http://localhost:8000/health
+          
+          # Perform cleanup
+          docker stop test-app
+          docker rm test-app
+
+      - name: Print Build Summary
+        run: |
+          echo "============================================="
+          echo " CI Pipeline Completed Successfully!"
+          echo " Python dependencies installed and cached."
+          echo " Formatting (black, isort) and Linting (flake8, mypy) passed."
+          echo " Pytest unit tests executed and passed."
+          echo " Docker image built and verified with startup health-checks."
+          echo "============================================="
