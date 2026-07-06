@@ -238,8 +238,120 @@ section[data-testid="stSidebar"] .block-container {
 .stProgress > div > div {
     border-radius: 8px;
 }
+
+/* High Contrast Medical Cards */
+.medical-card {
+    background: rgba(30, 41, 59, 0.75) !important;
+    border: 1px solid rgba(147, 197, 253, 0.3) !important;
+    border-radius: 14px !important;
+    padding: 1.5rem !important;
+    color: #f8fafc !important; /* high contrast white/light-grey */
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+    margin-bottom: 1.5rem !important;
+}
+
+.warning-card {
+    background: rgba(127, 29, 29, 0.45) !important;
+    border: 1px solid rgba(239, 68, 68, 0.4) !important;
+    border-radius: 14px !important;
+    padding: 1.5rem !important;
+    color: #fee2e2 !important; /* light red/white text */
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    margin-bottom: 1.5rem !important;
+}
+
+/* Bullet list custom styling for high contrast */
+.medical-card ul, .warning-card ul {
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+    padding-left: 1.2rem !important;
+}
+.medical-card li, .warning-card li {
+    color: #f8fafc !important;
+    margin-bottom: 0.3rem !important;
+}
+
+/* PDF download button styling override */
+.stButton > button, .stDownloadButton > button {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important; /* Emerald green for download/reports */
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.8rem 2rem !important;
+    font-weight: 700 !important;
+    font-size: 1.05rem !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+}
+.stDownloadButton > button:hover {
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
+    opacity: 0.95 !important;
+}
 </style>
 """, unsafe_allow_html=True)
+
+import json
+from typing import Dict, Any
+
+def get_model_metadata() -> Dict[str, Any]:
+    """Dynamically reads and evaluates NLP and Image model checkpoint metadata."""
+    metadata = {
+        "image_model": "EfficientNet-B0",
+        "image_classes": "4 classes",
+        "image_epoch": "N/A",
+        "image_val_acc": "N/A",
+        "nlp_model": "BioBERT Medical Classifier",
+        "nlp_classes": "41 diseases",
+        "nlp_checkpoint": "best_model.pt",
+        "nlp_epoch": "N/A",
+        "nlp_val_acc": "N/A",
+    }
+    
+    # 1. Load Image Checkpoint metadata
+    img_ckpt = Path("artifacts/checkpoints/checkpoint_epoch_050.pth")
+    if img_ckpt.exists():
+        try:
+            import torch
+            checkpoint_data = torch.load(img_ckpt, map_location="cpu", weights_only=False)
+            if isinstance(checkpoint_data, dict):
+                ep = checkpoint_data.get("epoch", None)
+                if ep is not None:
+                    metadata["image_epoch"] = str(int(ep) + 1)
+                metrics = checkpoint_data.get("metrics", {})
+                val_acc = metrics.get("val_acc", None)
+                if val_acc is not None:
+                    metadata["image_val_acc"] = f"{float(val_acc):.2f}%"
+        except Exception:
+            pass
+
+    # 2. Load NLP Checkpoint metadata from model_metadata.json
+    nlp_meta_path = Path("artifacts/checkpoints_nlp/model_metadata.json")
+    if nlp_meta_path.exists():
+        try:
+            with open(nlp_meta_path, "r", encoding="utf-8") as f:
+                nlp_meta = json.load(f)
+            metadata["nlp_model"] = nlp_meta.get("model_name", metadata["nlp_model"])
+            metadata["nlp_checkpoint"] = nlp_meta.get("checkpoint", metadata["nlp_checkpoint"])
+            
+            num_classes = nlp_meta.get("num_classes", None)
+            if num_classes is not None:
+                metadata["nlp_classes"] = f"{num_classes} diseases"
+                
+            val_acc = nlp_meta.get("validation_accuracy", None)
+            if val_acc is not None:
+                metadata["nlp_val_acc"] = f"{val_acc}%"
+                
+            epoch = nlp_meta.get("epoch", None)
+            if epoch is not None:
+                metadata["nlp_epoch"] = str(epoch)
+        except Exception:
+            pass
+
+    return metadata
 
 
 # ── Cached pipeline loaders ──────────────────────────────────────────────────
@@ -259,7 +371,7 @@ def load_nlp_pipeline():
     """Loads and caches the NLP Inference Pipeline."""
     from src.inference.nlp_predict import NLPInferencePipeline
     return NLPInferencePipeline(
-        checkpoint_path=Path("artifacts/checkpoints_nlp/checkpoint_epoch_4.pt"),
+        checkpoint_path=Path("artifacts/checkpoints_nlp/best_model.pt"),
         tokenizer_dir=Path("artifacts/checkpoints_nlp"),
         disease_mapping_path=Path("data/processed/disease_mapping_41.json"),
     )
@@ -303,7 +415,7 @@ with st.sidebar:
         '<div style="text-align:center;margin-bottom:1.5rem">'
         '<span style="font-size:2.5rem">🏥</span>'
         '<h2 style="color:white;margin:0.3rem 0 0 0;font-size:1.3rem">AI Diagnosis</h2>'
-        '<p style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin:0">Assistant v1.0</p>'
+        '<p style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin:0">Assistant v2.0 (BioBERT)</p>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -319,14 +431,21 @@ with st.sidebar:
 
     st.markdown("---")
 
-    st.markdown("""
-    <div style="color:rgba(255,255,255,0.5);font-size:0.8rem">
-    <b style="color:rgba(255,255,255,0.7)">Models</b><br>
-    🖼 EfficientNet-B0 (4 classes)<br>
-    📝 DistilBERT (41 diseases)<br><br>
-    <b style="color:rgba(255,255,255,0.7)">Checkpoints</b><br>
-    Epoch 50 · Val Acc 100%<br>
-    Epoch 4 · Val Acc 100%
+    meta = get_model_metadata()
+
+    st.markdown(f"""
+    <div style="color:rgba(255,255,255,0.65);font-size:0.8rem;line-height:1.4">
+    <b style="color:white;font-size:0.85rem">🧠 MODEL METADATA</b><br><br>
+    🖼️ <b>Image Model</b><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;{meta['image_model']} ({meta['image_classes']})<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Checkpoint: checkpoint_epoch_050.pth<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Epoch: {meta['image_epoch']}<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Val Accuracy: {meta['image_val_acc']}<br><br>
+    📝 <b>NLP Model</b><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;{meta['nlp_model']} ({meta['nlp_classes']})<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Checkpoint: {meta['nlp_checkpoint']}<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Epoch: {meta['nlp_epoch']}<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Val Accuracy: {meta['nlp_val_acc']}<br>
     </div>
     """, unsafe_allow_html=True)
 
@@ -343,7 +462,7 @@ with st.sidebar:
 st.markdown("""
 <div class="hero-banner">
     <h1>🏥 AI Medical Diagnosis Assistant</h1>
-    <p>Powered by EfficientNet-B0 & DistilBERT — Advanced deep learning for medical screening</p>
+    <p>Powered by EfficientNet-B0 & BioBERT — Advanced deep learning for medical screening</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -631,7 +750,7 @@ else:
     st.markdown("""
     <div class="info-box">
     Describe your symptoms in plain English. The model will analyse the text
-    using a fine-tuned <b>DistilBERT</b> transformer and predict the most likely
+    using a fine-tuned <b>BioBERT</b> transformer and predict the most likely
     condition from <b>41 diseases</b>.
     </div>
     """, unsafe_allow_html=True)
@@ -651,37 +770,34 @@ else:
         unsafe_allow_html=True,
     )
     ex_cols = st.columns(len(EXAMPLES))
-    chosen_example = None
-    for i, (col, ex) in enumerate(zip(ex_cols, EXAMPLES)):
-        with col:
-            if st.button(f"Example {i+1}", key=f"ex_{i}", use_container_width=True):
-                chosen_example = ex
+    cleaned_input = ""
+    symptom_input = ""
 
+    # Display examples as clickable buttons
+    for i, ex in enumerate(EXAMPLES):
+        with ex_cols[i]:
+            if st.button(ex[:20] + "...", key=f"ex_{i}", help=ex):
+                st.session_state.symptom_text_val = ex
+
+    # Managed input text area
     symptom_input = st.text_area(
-        "Describe your symptoms",
-        value=chosen_example if chosen_example else "",
-        height=130,
-        placeholder="e.g. I have fever, cough, sore throat, headache and body pain.",
-        label_visibility="collapsed",
+        "**Describe Symptoms**",
+        value=st.session_state.get("symptom_text_val", ""),
+        height=140,
+        placeholder="Type your symptoms here (e.g., 'cough, high fever, running nose, shivering...')"
     )
 
-    # Detect if NLP text changed to clear outdated results
     cleaned_input = symptom_input.strip()
-    if cleaned_input != st.session_state.last_nlp_input:
-        st.session_state.nlp_results = None
-        st.session_state.nlp_inference_time = None
-        st.session_state.nlp_report_path = None
-        st.session_state.last_nlp_input = cleaned_input
 
-    col_run, col_clear = st.columns([3, 1])
-    with col_run:
-        run_nlp = st.button("🔍  Diagnose Symptoms", use_container_width=True)
-    with col_clear:
-        if st.button("✕  Clear", use_container_width=True):
+    c1, c2 = st.columns([1, 4])
+    with c1:
+        run_nlp = st.button("🔍 Analyze Symptoms")
+    with c2:
+        if st.button("🧹 Clear Input"):
+            st.session_state.symptom_text_val = ""
             st.session_state.nlp_results = None
             st.session_state.nlp_inference_time = None
             st.session_state.nlp_report_path = None
-            st.session_state.last_nlp_input = None
             st.rerun()
 
     # ── Run inference ────────────────────────────────────────────────────────
@@ -712,7 +828,7 @@ else:
                         predicted_disease=result["predicted_disease"],
                         confidence=result["confidence"],
                         predictions=result["top_predictions"],
-                        model_used="DistilBERT",
+                        model_used="BioBERT",
                         inference_time_ms=st.session_state.nlp_inference_time
                     )
                     st.session_state.nlp_report_path = str(pdf_path)
@@ -759,7 +875,7 @@ else:
             <div class="metric-tile">
                 <div class="metric-label">Inference Time</div>
                 <div class="metric-value" style="font-size:1.6rem">{inference_time_ms:.1f} ms</div>
-                <div class="metric-sub">DistilBERT execution</div>
+                <div class="metric-sub">BioBERT execution</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -780,6 +896,38 @@ else:
         )
         for pred in top5:
             render_prediction_bar(pred["rank"], pred["disease"], pred["confidence"])
+
+        # Render clinical explanations if available (BioBERT-specific features)
+        explanation = result.get("clinical_explanation", None)
+        if explanation:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown('<p class="section-header">🩺 Clinical Explanation & Guidance</p>', unsafe_allow_html=True)
+            
+            e_col1, e_col2 = st.columns(2)
+            with e_col1:
+                st.markdown(f"""
+                <div class="medical-card" style="height: 100%;">
+                    <h4 style="color:#60a5fa;margin-top:0;margin-bottom:0.8rem">📋 Medical Guidance</h4>
+                    <p style="margin-bottom:0.5rem"><b>Recommended Specialist:</b> {explanation['specialist']}</p>
+                    <p style="margin-bottom:0.3rem"><b>Suggested Diagnostic Tests:</b></p>
+                    <ul style="margin-top:0; margin-bottom:0.5rem">
+                        {''.join(f"<li>{test}</li>" for test in explanation['tests'])}
+                    </ul>
+                    <p style="margin-bottom:0"><b>Similar Conditions to Rule Out:</b> {', '.join(explanation['similar_diseases'])}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with e_col2:
+                # Highlight warning signs if critical
+                st.markdown(f"""
+                <div class="warning-card" style="height: 100%;">
+                    <h4 style="color:#f87171;margin-top:0;margin-bottom:0.8rem">⚠️ Emergency Warning Signs</h4>
+                    <p style="color:#fbcfe8; margin-bottom:0.8rem"><b>Warning Signs:</b> {explanation['emergency_signs']}</p>
+                    <h4 style="color:#34d399;margin-top:0.8rem;margin-bottom:0.5rem">🏡 Home Care & Lifestyle</h4>
+                    <p style="margin-bottom:0.4rem"><b>Care:</b> {explanation['home_care']}</p>
+                    <p style="margin-bottom:0"><b>Lifestyle:</b> {explanation['lifestyle']}</p>
+                </div>
+                """, unsafe_allow_html=True)
 
         # Download Report Block
         if pdf_path_str and Path(pdf_path_str).exists():

@@ -127,6 +127,17 @@ class SymptomRequest(BaseModel):
         return v
 
 
+class ClinicalExplanation(BaseModel):
+    """Structured clinical advice and warning details for prediction explanations."""
+
+    specialist: str
+    tests: List[str]
+    emergency_signs: str
+    home_care: str
+    lifestyle: str
+    similar_diseases: List[str]
+
+
 class SymptomPredictionResponse(BaseModel):
     """Response schema for POST /predict/symptoms"""
 
@@ -135,3 +146,5 @@ class SymptomPredictionResponse(BaseModel):
     confidence: float
     top_predictions: List[TopPrediction]
     preprocessed_text: str
+    clinical_explanation: Optional[ClinicalExplanation] = None
+

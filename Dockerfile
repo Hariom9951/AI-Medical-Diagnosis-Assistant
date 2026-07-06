@@ -31,29 +31,63 @@ WORKDIR /build
 # ── Copy only what pip needs first (layer cache optimisation) ─
 COPY requirements.txt .
 
-# Create an isolated venv inside /build/venv
-RUN python -m venv /build/venv && \
-    /build/venv/bin/pip install --upgrade pip wheel && \
-    /build/venv/bin/pip install --no-cache-dir -r requirements.txt
+# Create an isolated venv inside /build/venv and install CPU-only PyTorch + requirements
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python -m venv /build/venv && \
+    /build/venv/bin/pip install --upgrade pip wheel setuptools --timeout 120 --retries 5 && \
+    /build/venv/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu --timeout 120 --retries 5 && \
+    /build/venv/bin/pip install -r requirements.txt --timeout 120 --retries 5
 
-# ── Pre-download DistilBERT base weights into the builder image ──
+# ── Pre-download BioBERT base weights into the builder image ──
 # Internet is available during build; we cache the model so the
 # runtime container can run fully offline (TRANSFORMERS_OFFLINE=1).
 ENV HF_HOME=/build/hf_cache
 RUN /build/venv/bin/python - <<'EOF'
-from transformers import DistilBertConfig, DistilBertForSequenceClassification, DistilBertTokenizer
-print("[BUILD] Downloading distilbert-base-uncased config + weights ...")
-DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-DistilBertConfig.from_pretrained("distilbert-base-uncased")
-DistilBertForSequenceClassification.from_pretrained("distilbert-base-uncased")
-print("[BUILD] distilbert-base-uncased cached successfully.")
+import sys
+from transformers import BertConfig, BertForSequenceClassification, AutoTokenizer
+
+model_name = "dmis-lab/biobert-base-cased-v1.1"
+print(f"[BUILD] Downloading {model_name} config + weights ...")
+
+try:
+    # 1. Download tokenizer with fallback to use_fast=False
+    try:
+        print("[BUILD] Attempting fast tokenizer download...")
+        AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    except Exception as e:
+        print(f"[BUILD] Fast tokenizer failed: {e}. Retrying with use_fast=False...")
+        try:
+            AutoTokenizer.from_pretrained(model_name, use_fast=False)
+            print("[BUILD] Slow tokenizer cached successfully.")
+        except Exception as e2:
+            print(f"[BUILD] Warning: Tokenizer download failed: {e2}")
+
+    # 2. Download config
+    try:
+        BertConfig.from_pretrained(model_name)
+        print("[BUILD] Config cached successfully.")
+    except Exception as e:
+        print(f"[BUILD] Warning: Config download failed: {e}")
+
+    # 3. Pre-cache model weights
+    try:
+        BertForSequenceClassification.from_pretrained(model_name, num_labels=41)
+        print("[BUILD] BioBERT weights cached successfully.")
+    except Exception as e:
+        print(f"[BUILD] Warning: model weights cache got warning: {e}")
+
+except Exception as e:
+    print(f"[BUILD] Warning: BioBERT caching step failed but continuing: {e}")
+
+print("[BUILD] BioBERT caching check complete.")
 EOF
+
 
 # ─── Stage 2: lean runtime image ────────────────────────────
 FROM python:3.11-slim AS runtime
 
 LABEL maintainer="Hariom Sharma <hariom9951@github.com>" \
-      version="1.0.0" \
+      version="2.0.0" \
       description="AI Medical Diagnosis Assistant — FastAPI + Streamlit"
 
 # Runtime system libraries (no build tools)
@@ -73,7 +107,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /build/venv /opt/venv
 
 # ── Copy pre-downloaded HuggingFace model cache from builder ─
-# Allows the runtime container to load distilbert-base-uncased
+# Allows the runtime container to load dmis-lab/biobert-base-cased-v1.1
 # fully offline (TRANSFORMERS_OFFLINE=1 is set below).
 COPY --from=builder /build/hf_cache /opt/hf_cache
 
@@ -110,7 +144,7 @@ COPY requirements.txt .
 # EfficientNet image checkpoint
 COPY artifacts/checkpoints/   ./artifacts/checkpoints/
 
-# DistilBERT NLP checkpoint + tokenizer
+# BioBERT NLP checkpoint + tokenizer
 COPY artifacts/checkpoints_nlp/ ./artifacts/checkpoints_nlp/
 
 # ── Copy disease mapping used by NLP pipeline ─────────────────

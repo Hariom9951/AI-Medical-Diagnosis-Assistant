@@ -1,35 +1,17 @@
-"""NLP Symptom Classification Inference Pipeline - Production Module.
-
-Reconstructs the DistilBERT SymptomClassifier exactly as trained in Phase 15,
-loads the saved checkpoint + tokenizer, and exposes a clean predict() API.
-
-Key architectural facts discovered from checkpoint inspection:
-- checkpoint_epoch_4.pt is a raw OrderedDict (torch.save(model.state_dict()))
-  NOT wrapped in {model_state_dict, epoch, config, ...}
-- Keys match DistilBertForSequenceClassification directly (no 'model.' prefix)
-- Classifier head has 41 output classes (not 38)
-- 41-class mapping is in data/processed/disease_mapping_41.json
-
-Preprocessing is identical to training-time SymptomDataPreprocessor:
-  - Lowercase conversion
-  - Remove all non-word/non-space/non-underscore characters
-  - Replace underscores with spaces
-  - Collapse repeated whitespace
-"""
-
 from __future__ import annotations
 
 import json
 import re
+import pickle
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
 import torch
 import torch.nn.functional as F
 from transformers import (
-    DistilBertConfig,
-    DistilBertForSequenceClassification,
-    DistilBertTokenizer,
+    BertConfig,
+    BertForSequenceClassification,
+    AutoTokenizer,
 )
 
 from src.utils.exceptions import AppInferenceError, AppValidationError
@@ -40,13 +22,11 @@ logger = AppLogger.get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Constants - must match training configuration exactly
 # ---------------------------------------------------------------------------
-_DEFAULT_CHECKPOINT = Path("artifacts/checkpoints_nlp/checkpoint_epoch_4.pt")
+_DEFAULT_CHECKPOINT = Path("artifacts/checkpoints_nlp/best_model.pt")
 _DEFAULT_TOKENIZER_DIR = Path("artifacts/checkpoints_nlp")
-# 41-class mapping reconstructed from classification_report.txt
 _DEFAULT_DISEASE_MAPPING = Path("data/processed/disease_mapping_41.json")
-# From nlp_training_config.yaml
-_DEFAULT_MAX_LENGTH: int = 64
-_DEFAULT_MODEL_NAME: str = "distilbert-base-uncased"
+_DEFAULT_MAX_LENGTH: int = 128
+_DEFAULT_MODEL_NAME: str = "dmis-lab/biobert-base-cased-v1.1"
 _DEFAULT_DROPOUT: float = 0.2
 
 
@@ -80,23 +60,23 @@ def preprocess_symptom_text(raw_text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# NLP Inference Pipeline
+# BioBERT Inference Pipeline
 # ---------------------------------------------------------------------------
 
 class NLPInferencePipeline:
-    """Production-grade inference pipeline for DistilBERT Symptom Classifier.
+    """Production-grade inference pipeline for BioBERT Symptom Classifier.
 
-    Reconstructs the model architecture exactly as in training (Phase 15),
-    loads the checkpoint and saved tokenizer, and exposes predict() for
-    free-text symptom strings.
+    Loads the fine-tuned checkpoint, tokenizer, label encoder, and
+    temperature scaler, and exposes a predict() method for symptom text.
 
     Attributes:
         device (torch.device): CPU or CUDA device.
-        model: DistilBERT classifier in eval mode.
-        tokenizer: DistilBertTokenizer loaded from saved artifacts.
+        model: BertForSequenceClassification classifier in eval mode.
+        tokenizer: AutoTokenizer loaded from saved artifacts.
         idx_to_disease (Dict[int, str]): Reverse mapping from label index to
             disease name.
-        max_length (int): Token sequence length used during training (64).
+        max_length (int): Token sequence length used during training (128).
+        temperature (float): Confidence calibration temperature value.
     """
 
     def __init__(
@@ -108,17 +88,7 @@ class NLPInferencePipeline:
         dropout: float = _DEFAULT_DROPOUT,
         max_length: int = _DEFAULT_MAX_LENGTH,
     ) -> None:
-        """Initializes the NLP inference pipeline.
-
-        Args:
-            checkpoint_path: Path to the .pt checkpoint file saved after training.
-            tokenizer_dir: Directory containing tokenizer.json and
-                tokenizer_config.json saved during training.
-            disease_mapping_path: Path to disease_mapping_41.json (41-class mapping).
-            model_name: HuggingFace model ID - must match what was used in training.
-            dropout: Sequence classification dropout - must match training config (0.2).
-            max_length: Token max length - must match training config (64).
-        """
+        """Initializes the NLP inference pipeline."""
         logger.info("Initializing NLP Inference Pipeline.")
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -126,38 +96,53 @@ class NLPInferencePipeline:
 
         self.max_length = max_length
 
-        # 1. Load Disease Mapping (41-class mapping matching training)
-        self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(
-            Path(disease_mapping_path)
-        )
-        num_classes = len(self.disease_to_idx)
-        logger.info("Disease mapping loaded: %d classes.", num_classes)
+        # 1. Load Disease Mapping / Label Encoder
+        label_encoder_path = Path(tokenizer_dir) / "label_encoder.pkl"
+        if label_encoder_path.exists():
+            try:
+                with open(label_encoder_path, "rb") as f:
+                    self.label_encoder = pickle.load(f)
+                self.idx_to_disease = {idx: str(disease) for idx, disease in enumerate(self.label_encoder.classes_)}
+                self.disease_to_idx = {str(disease): idx for idx, disease in enumerate(self.label_encoder.classes_)}
+                logger.info("Label encoder loaded. Re-aligned mapping with %d classes.", len(self.idx_to_disease))
+            except Exception as e:
+                logger.warning("Failed to load label encoder from %s: %s", label_encoder_path, e)
+                self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(Path(disease_mapping_path))
+        else:
+            self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(Path(disease_mapping_path))
 
-        # 2. Reconstruct Model Architecture (identical to training SymptomClassifier)
-        # SymptomClassifier.__init__ calls:
-        #   config = DistilBertConfig.from_pretrained(model_name, num_labels=num_classes,
-        #                                             seq_classif_dropout=dropout)
-        #   self.model = DistilBertForSequenceClassification.from_pretrained(model_name, config=config)
+        num_classes = len(self.disease_to_idx)
+        logger.info("Disease mapping initialized: %d classes.", num_classes)
+
+        # 2. Load Temperature Scaler
+        temperature_scaler_path = Path(tokenizer_dir) / "temperature_scaler.json"
+        self.temperature = 1.0
+        if temperature_scaler_path.exists():
+            try:
+                with open(temperature_scaler_path, "r", encoding="utf-8") as f:
+                    scaler_data = json.load(f)
+                self.temperature = float(scaler_data.get("temperature", 1.0))
+                logger.info("Temperature scaler loaded: T=%f", self.temperature)
+            except Exception as e:
+                logger.warning("Failed to load temperature scaler: %s", e)
+
+        # 3. Reconstruct Model Architecture
         try:
-            config = DistilBertConfig.from_pretrained(
+            config = BertConfig.from_pretrained(
                 model_name,
                 num_labels=num_classes,
                 seq_classif_dropout=dropout,
             )
-            inner_model = DistilBertForSequenceClassification.from_pretrained(
-                model_name,
-                config=config,
-            )
+            # Match vocabulary size of tokenizers/weights (30522)
+            config.vocab_size = 30522
+            inner_model = BertForSequenceClassification(config)
         except Exception as e:
             raise AppInferenceError(
-                message=f"Failed to reconstruct DistilBERT architecture: {e}",
+                message=f"Failed to reconstruct BioBERT architecture: {e}",
                 details={"model_name": model_name},
             )
 
-        # 3. Load Checkpoint
-        # checkpoint_epoch_4.pt was saved as a raw OrderedDict state dict
-        # (torch.save(model.state_dict(), path)), NOT as a nested dict.
-        # Keys directly match DistilBertForSequenceClassification (no prefix).
+        # 4. Load Checkpoint
         ckpt_path = Path(checkpoint_path)
         if not ckpt_path.exists():
             raise AppInferenceError(
@@ -173,30 +158,23 @@ class NLPInferencePipeline:
                 details={"checkpoint_path": str(ckpt_path)},
             )
 
-        # Determine checkpoint format:
-        #   - Raw OrderedDict: keys are tensor parameter names directly
-        #   - Wrapped dict: has 'model_state_dict' key
         if isinstance(raw, dict) and "model_state_dict" in raw:
-            # Wrapped format (e.g. saved via NLPClassifierTrainer.save_checkpoint)
             saved_state: Dict[str, Any] = raw["model_state_dict"]
             epoch = raw.get("epoch", "N/A")
             metrics = raw.get("metrics", {})
-            logger.info("Checkpoint format: wrapped dict (epoch=%s).", epoch)
-
-            # Strip 'model.' prefix if present (SymptomClassifier wraps under self.model)
-            sample_key = next(iter(saved_state))
-            if sample_key.startswith("model."):
-                logger.info("Stripping 'model.' prefix from checkpoint keys.")
-                saved_state = {k[len("model."):]: v for k, v in saved_state.items()}
         else:
-            # Raw OrderedDict format (direct model.state_dict() save)
             saved_state = raw
             epoch = "N/A"
             metrics = {}
-            logger.info(
-                "Checkpoint format: raw OrderedDict state_dict (%d parameter tensors).",
-                len(saved_state),
-            )
+
+        # Strip prefixes if model was saved inside a wrapper structure
+        sample_key = next(iter(saved_state))
+        if sample_key.startswith("bert."):
+            logger.info("Stripping 'bert.' prefix from checkpoint keys.")
+            saved_state = {k[5:]: v for k, v in saved_state.items()}
+        elif sample_key.startswith("model."):
+            logger.info("Stripping 'model.' prefix from checkpoint keys.")
+            saved_state = {k[6:]: v for k, v in saved_state.items()}
 
         try:
             inner_model.load_state_dict(saved_state, strict=True)
@@ -216,8 +194,6 @@ class NLPInferencePipeline:
         print(f"[NLP] checkpoint: {ckpt_path.name}")
         print(f"[NLP] epoch:      {epoch}")
         print(f"[NLP] num_classes: {num_classes}")
-        print(f"[NLP] val_loss:   {val_loss}")
-        print(f"[NLP] val_acc:    {val_acc}")
 
         self.checkpoint_info = {
             "checkpoint_path": ckpt_path,
@@ -226,12 +202,12 @@ class NLPInferencePipeline:
             "num_classes": num_classes,
         }
 
-        # 4. Put Model in Eval Mode
+        # Put Model in Eval Mode
         inner_model.to(self.device)
         inner_model.eval()
         self.model = inner_model
 
-        # 5. Load Tokenizer (from saved artifacts first, then HuggingFace Hub)
+        # 5. Load Tokenizer
         tokenizer_path = Path(tokenizer_dir)
         if not tokenizer_path.exists():
             raise AppInferenceError(
@@ -239,7 +215,7 @@ class NLPInferencePipeline:
                 details={"tokenizer_dir": str(tokenizer_path)},
             )
         try:
-            self.tokenizer = DistilBertTokenizer.from_pretrained(
+            self.tokenizer = AutoTokenizer.from_pretrained(
                 str(tokenizer_path),
                 local_files_only=True,
             )
@@ -251,7 +227,7 @@ class NLPInferencePipeline:
                 tokenizer_path, model_name, e,
             )
             try:
-                self.tokenizer = DistilBertTokenizer.from_pretrained(model_name)
+                self.tokenizer = AutoTokenizer.from_pretrained(model_name)
                 logger.info("Tokenizer loaded from HuggingFace Hub: %s", model_name)
             except Exception as e2:
                 raise AppInferenceError(
@@ -264,6 +240,17 @@ class NLPInferencePipeline:
                         "model_name": model_name,
                     },
                 )
+
+        # 6. Load Clinical Explanations Registry
+        explanations_path = Path(tokenizer_dir) / "clinical_explanations.json"
+        self.explanations = {}
+        if explanations_path.exists():
+            try:
+                with open(explanations_path, "r", encoding="utf-8") as f:
+                    self.explanations = json.load(f)
+                logger.info("Loaded clinical explanations registry from: %s", explanations_path)
+            except Exception as e:
+                logger.warning("Failed to load clinical explanations registry: %s", e)
 
         logger.info(
             "NLP Inference Pipeline ready. Classes: %d | MaxLen: %d | Device: %s",
@@ -299,7 +286,7 @@ class NLPInferencePipeline:
         """Tokenizes text using identical parameters to NLPTextDataset in training.
 
         Training parameters: padding=max_length, truncation=True,
-        max_length=64, return_tensors=pt.
+        max_length=128, return_tensors=pt.
 
         Args:
             text: Preprocessed symptom string.
@@ -337,6 +324,7 @@ class NLPInferencePipeline:
                 - top_predictions (List[Dict]): Top-k predictions each with
                   rank (int), disease (str), confidence (float).
                 - preprocessed_text (str): The cleaned text that was tokenized.
+                - clinical_explanation (Optional[Dict]): Explanations and guidance.
 
         Raises:
             AppValidationError: If symptom_text is empty after preprocessing.
@@ -365,7 +353,9 @@ class NLPInferencePipeline:
                     attention_mask=attention_mask,
                 )
                 logits = outputs.logits              # [1, num_classes]
-                probabilities = F.softmax(logits, dim=-1).squeeze(0)  # [num_classes]
+                # Apply Temperature Scaling Confidence Calibration
+                calibrated_logits = logits / self.temperature
+                probabilities = F.softmax(calibrated_logits, dim=-1).squeeze(0)  # [num_classes]
 
             # 4. Top-k predictions
             k = min(top_k, len(self.idx_to_disease))
@@ -383,11 +373,17 @@ class NLPInferencePipeline:
                 })
 
             best = top_predictions[0]
+            predicted_name = best["disease"]
+            
+            # Fetch clinical explanation details
+            explanation = self.explanations.get(predicted_name, None)
+
             result: Dict[str, Any] = {
-                "predicted_disease": best["disease"],
+                "predicted_disease": predicted_name,
                 "confidence": best["confidence"],
                 "top_predictions": top_predictions,
                 "preprocessed_text": cleaned,
+                "clinical_explanation": explanation,
             }
 
             logger.info(
@@ -403,3 +399,4 @@ class NLPInferencePipeline:
                 message=f"NLP inference execution failed: {e}",
                 details={"symptom_text": symptom_text[:200]},
             )
+

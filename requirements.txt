@@ -8,6 +8,10 @@ grad-cam>=1.5.0
 # Transformers & NLP
 transformers>=4.38.0
 tokenizers>=0.15.1
+sentencepiece>=0.1.99
+protobuf>=3.20.3
+safetensors>=0.4.1
+accelerate>=0.27.2
 
 # FastAPI Web API Layer
 fastapi>=0.109.2

@@ -152,7 +152,7 @@ def run_nlp_pipeline() -> bool:
     print("\nLoading NLP Pipeline...")
     try:
         pipeline = NLPInferencePipeline(
-            checkpoint_path=Path("artifacts/checkpoints_nlp/checkpoint_epoch_4.pt"),
+            checkpoint_path=Path("artifacts/checkpoints_nlp/best_model.pt"),
             tokenizer_dir=Path("artifacts/checkpoints_nlp"),
             disease_mapping_path=Path("data/processed/disease_mapping_41.json"),
         )

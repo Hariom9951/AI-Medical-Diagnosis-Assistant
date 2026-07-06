@@ -171,7 +171,7 @@ class PDFReportGenerator:
         story.append(Paragraph("1. Executive Summary", self.h1_style))
         summary_text = (
             "This report outlines the training optimization cycles conducted for both the "
-            "Chest X-Ray Image Classifier (EfficientNet-B0) and the Symptom Text Classifier (DistilBERT). "
+            "Chest X-Ray Image Classifier (EfficientNet-B0) and the Symptom Text Classifier (BioBERT). "
             "Optimization methods including mixed precision (AMP), dynamic class weighting, gradient clipping, "
             "and hyperparameter grid searches were utilized to mitigate data imbalance and optimize convergence. "
             "Detailed configurations, logs, and loss curves are captured below."
@@ -181,7 +181,7 @@ class PDFReportGenerator:
         # Hyperparameters Table
         story.append(Paragraph("2. Optimized Hyperparameters", self.h1_style))
         param_data = [
-            [Paragraph("Hyperparameter", self.table_header_style), Paragraph("EfficientNet Image Classifier", self.table_header_style), Paragraph("DistilBERT Symptom Classifier", self.table_header_style)],
+            [Paragraph("Hyperparameter", self.table_header_style), Paragraph("EfficientNet Image Classifier", self.table_header_style), Paragraph("BioBERT Symptom Classifier", self.table_header_style)],
             [Paragraph("Optimizer", self.table_cell_style), Paragraph(str(image_hyperparams.get("optimizer", "AdamW")), self.table_cell_style), Paragraph(str(nlp_hyperparams.get("optimizer", "AdamW")), self.table_cell_style)],
             [Paragraph("Learning Rate", self.table_cell_style), Paragraph(str(image_hyperparams.get("learning_rate", "0.001")), self.table_cell_style), Paragraph(str(nlp_hyperparams.get("learning_rate", "2e-5")), self.table_cell_style)],
             [Paragraph("Weight Decay", self.table_cell_style), Paragraph(str(image_hyperparams.get("weight_decay", "0.0001")), self.table_cell_style), Paragraph(str(nlp_hyperparams.get("weight_decay", "0.01")), self.table_cell_style)],
@@ -221,17 +221,17 @@ class PDFReportGenerator:
         if nlp_curves_path and nlp_curves_path.exists():
             img = Image(str(nlp_curves_path), width=6.5 * inch, height=2.7 * inch)
             story.append(img)
-            story.append(Paragraph("Figure 2: DistilBERT symptom classifier training and validation curves.", self.caption_style))
+            story.append(Paragraph("Figure 2: BioBERT symptom classifier training and validation curves.", self.caption_style))
         else:
             story.append(Paragraph("NLP training curves plot not available.", self.body_style))
-
+ 
         # Build Document
         doc.build(story, onFirstPage=lambda c, d: self._draw_header_footer(c, d, "Training Report"),
                   onLaterPages=lambda c, d: self._draw_header_footer(c, d, "Training Report"))
-        
+         
         logger.info("Generated PDF Training Report at: %s", pdf_path)
         return pdf_path
-
+ 
     def generate_evaluation_report(
         self,
         output_name: str,
@@ -246,16 +246,16 @@ class PDFReportGenerator:
         pdf_path = self.reports_dir / output_name
         doc = SimpleDocTemplate(str(pdf_path), pagesize=letter, rightMargin=54, leftMargin=54, topMargin=54, bottomMargin=54)
         story: List[Any] = []
-
+ 
         # Title Block
         story.append(Paragraph("Model Evaluation Report", self.title_style))
         story.append(Paragraph("Statistical evaluation of the improved image and text classifier models on test datasets", self.subtitle_style))
         story.append(Spacer(1, 10))
-
+ 
         # Overall Metrics Section
         story.append(Paragraph("1. Test Performance Metrics Summary", self.h1_style))
         metrics_data = [
-            [Paragraph("Metric", self.table_header_style), Paragraph("Image Model (EfficientNet)", self.table_header_style), Paragraph("NLP Model (DistilBERT)", self.table_header_style)],
+            [Paragraph("Metric", self.table_header_style), Paragraph("Image Model (EfficientNet)", self.table_header_style), Paragraph("NLP Model (BioBERT)", self.table_header_style)],
             [Paragraph("Test Accuracy", self.table_cell_style), Paragraph(f"{image_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style)],
             [Paragraph("Macro Precision", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_precision', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_precision', 0.0):.4f}", self.table_cell_style)],
             [Paragraph("Macro Recall", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style)],
@@ -353,7 +353,7 @@ class PDFReportGenerator:
             [
                 Paragraph("Benchmarking Metric", self.table_header_style),
                 Paragraph("Image Classifier (EfficientNet)", self.table_header_style),
-                Paragraph("Symptom Classifier (DistilBERT)", self.table_header_style)
+                Paragraph("Symptom Classifier (BioBERT)", self.table_header_style)
             ],
             [Paragraph("MLflow Run ID", self.table_cell_style), Paragraph(image_run_id, self.table_cell_style), Paragraph(nlp_run_id, self.table_cell_style)],
             [Paragraph("Test Accuracy", self.table_cell_style), Paragraph(f"{image_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style)],
@@ -361,7 +361,7 @@ class PDFReportGenerator:
             [Paragraph("Macro Recall", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style)],
             [Paragraph("Macro F1-Score", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_f1', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_f1', 0.0):.4f}", self.table_cell_style)],
             [Paragraph("Macro ROC-AUC", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_roc_auc', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_roc_auc', 0.0):.4f}", self.table_cell_style)],
-            [Paragraph("Total Parameters", self.table_cell_style), Paragraph("11.2M", self.table_cell_style), Paragraph("67.0M", self.table_cell_style)],
+            [Paragraph("Total Parameters", self.table_cell_style), Paragraph("11.2M", self.table_cell_style), Paragraph("109.5M", self.table_cell_style)],
             [Paragraph("Best Training Epoch", self.table_cell_style), Paragraph(f"Epoch {image_best_epoch}", self.table_cell_style), Paragraph(f"Epoch {nlp_best_epoch}", self.table_cell_style)],
             [Paragraph("Training Time (s)", self.table_cell_style), Paragraph(f"{image_time:.1f}s", self.table_cell_style), Paragraph(f"{nlp_time:.1f}s", self.table_cell_style)],
         ]
@@ -385,7 +385,7 @@ class PDFReportGenerator:
             "but requires longer training times per sample due to spatial convolution arithmetic. "
             "The model demonstrates strong performance in binary category classification (e.g. COVID vs Normal) "
             "but faces challenge boundaries in diffuse categories (e.g. Lung Opacity vs Viral Pneumonia). "
-            "Conversely, the DistilBERT model converges fast (under 1-2 minutes on CPU/GPU) and handles 38 detailed "
+            "Conversely, the BioBERT model converges fast (under 1-2 minutes on CPU/GPU) and handles 38 detailed "
             "symptom disease combinations natively. It demonstrates high recall but suffers in precision in cases "
             "of highly overlapping generic symptoms (e.g. cough, fever mapping to multiple distinct diseases)."
         )
@@ -397,7 +397,7 @@ class PDFReportGenerator:
             "Based on single-modality benchmarking, the following architectural fusion approaches are recommended "
             "for the next phase:<br/>"
             "<b>1. Late Fusion Classifier:</b> Project the penultimate 1280-dim feature vector of EfficientNet and "
-            "the 768-dim CLS embedding vector of DistilBERT into a shared projection layer (e.g., 256-dims) before "
+            "the 768-dim CLS embedding vector of BioBERT into a shared projection layer (e.g., 256-dims) before "
             "concatenation and classification.<br/>"
             "<b>2. Weighted Gated Fusion:</b> Introduce a gating mechanism that dynamically weights the text "
             "representation and the image representation based on patient profile confidence factors.<br/>"

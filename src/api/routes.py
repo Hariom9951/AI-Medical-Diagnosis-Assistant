@@ -44,11 +44,11 @@ router = APIRouter()
 # Application constants
 # ---------------------------------------------------------------------------
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "2.0.0"
 PROJECT_NAME = "AI Medical Diagnosis Assistant"
 DESCRIPTION = (
     "Production-ready REST API for automated medical image and symptom-based "
-    "disease classification using EfficientNet-B0 and DistilBERT models."
+    "disease classification using EfficientNet-B0 and BioBERT models."
 )
 AUTHOR = "Hariom Sharma"
 
@@ -275,7 +275,7 @@ async def predict_image(
 async def predict_symptoms(body: SymptomRequest) -> SymptomPredictionResponse:
     """Accepts a free-text symptom description and returns disease predictions.
 
-    The endpoint uses the pre-loaded DistilBERT symptom classifier trained on
+    The endpoint uses the pre-loaded BioBERT symptom classifier trained on
     41 disease classes.
 
     **Example input:**  
@@ -311,9 +311,23 @@ async def predict_symptoms(body: SymptomRequest) -> SymptomPredictionResponse:
         for p in result.get("top_predictions", [])
     ]
 
+    explanation = result.get("clinical_explanation", None)
+    clinical_explanation = None
+    if explanation:
+        from src.api.schemas import ClinicalExplanation
+        clinical_explanation = ClinicalExplanation(
+            specialist=explanation["specialist"],
+            tests=explanation["tests"],
+            emergency_signs=explanation["emergency_signs"],
+            home_care=explanation["home_care"],
+            lifestyle=explanation["lifestyle"],
+            similar_diseases=explanation["similar_diseases"]
+        )
+
     return SymptomPredictionResponse(
         predicted_disease=result["predicted_disease"],
         confidence=result["confidence"],
         top_predictions=top_preds,
         preprocessed_text=result.get("preprocessed_text", ""),
+        clinical_explanation=clinical_explanation,
     )

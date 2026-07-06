@@ -175,7 +175,7 @@ class MedicalReportGenerator:
             predicted_disease: Top predicted disease class name.
             confidence: Confidense score (softmax prob) between 0.0 and 1.0.
             predictions: List of dicts representing top-N class probabilities.
-            model_used: "EfficientNet-B0" or "DistilBERT".
+            model_used: "EfficientNet-B0" or "BioBERT".
             inference_time_ms: Total model execution time in milliseconds.
 
         Returns:
