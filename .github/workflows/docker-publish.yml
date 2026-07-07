@@ -1,0 +1,71 @@
+name: CD Pipeline - Publish Docker Image
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Build and Publish Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Downcase registry image name
+        # Generates a lowercase tag name for GHCR compatibility as usernames/repo owners can contain capitals
+        run: |
+          echo "IMAGE_NAME=$(echo "ghcr.io/${{ github.repository_owner }}/ai-medical-diagnosis-assistant" | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Set up QEMU
+        # QEMU is useful for multi-platform support if needed later
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        # Sets up Buildx to build multi-stage Docker images and utilize caching
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        # Authenticates to GHCR using GITHUB_TOKEN permissions
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare Dummy Artifacts for Docker Build
+        # Excluded checkpoints and processed data files in .gitignore need to exist as dummy files
+        # so COPY commands inside the Dockerfile don't fail when building inside clean CI/CD runners
+        run: |
+          mkdir -p artifacts/checkpoints
+          touch artifacts/checkpoints/best_model.pth
+
+          mkdir -p artifacts/checkpoints_nlp
+          touch artifacts/checkpoints_nlp/config.json
+          touch artifacts/checkpoints_nlp/pytorch_model.bin
+          touch artifacts/checkpoints_nlp/tokenizer_config.json
+          touch artifacts/checkpoints_nlp/special_tokens_map.json
+          touch artifacts/checkpoints_nlp/vocab.txt
+
+          mkdir -p data/processed
+          echo '{"COVID": 0, "Lung_Opacity": 1, "Normal": 2, "Viral Pneumonia": 3}' > data/processed/disease_mapping_41.json
+          echo '{"COVID": 0, "Lung_Opacity": 1, "Normal": 2, "Viral Pneumonia": 3}' > data/processed/disease_mapping.json
+
+      - name: Build and Push Docker Image
+        # Builds and pushes the image using docker/build-push-action with buildx cache
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:latest
+          # Buildx cache configuration utilizing GitHub Actions caching backend
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
