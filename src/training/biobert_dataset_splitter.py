@@ -62,9 +62,11 @@ _SPLIT_REPORT_MD: Final[Path] = _FINAL_DIR / "split_statistics_report.md"
 # Dataclasses
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class SplitStats:
     """Statistics for dataset splits validation."""
+
     total_samples: int
     train_size: int
     val_size: int
@@ -81,6 +83,7 @@ class SplitStats:
 # ─────────────────────────────────────────────────────────────────────────────
 # Core Splitting Logic
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def stratified_split_by_class(
     df: pd.DataFrame,
@@ -154,9 +157,13 @@ def stratified_split_by_class(
                 test_rows.append(r)
 
     # Reassemble and shuffle splits
-    train_df = pd.DataFrame(train_rows).sample(frac=1, random_state=random_state).reset_index(drop=True)
+    train_df = (
+        pd.DataFrame(train_rows).sample(frac=1, random_state=random_state).reset_index(drop=True)
+    )
     val_df = pd.DataFrame(val_rows).sample(frac=1, random_state=random_state).reset_index(drop=True)
-    test_df = pd.DataFrame(test_rows).sample(frac=1, random_state=random_state).reset_index(drop=True)
+    test_df = (
+        pd.DataFrame(test_rows).sample(frac=1, random_state=random_state).reset_index(drop=True)
+    )
 
     return train_df, val_df, test_df
 
@@ -164,6 +171,7 @@ def stratified_split_by_class(
 # ─────────────────────────────────────────────────────────────────────────────
 # Class Weights calculation
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def compute_class_weights(
     train_df: pd.DataFrame,
@@ -206,6 +214,7 @@ def compute_class_weights(
 # Verification Logic
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def verify_splits(
     train_df: pd.DataFrame,
     val_df: pd.DataFrame,
@@ -236,7 +245,7 @@ def verify_splits(
     overlap_train_test = len(train_texts.intersection(test_texts))
     overlap_val_test = len(val_texts.intersection(test_texts))
     overlap_count = overlap_train_val + overlap_train_test + overlap_val_test
-    has_duplicates = (overlap_count > 0)
+    has_duplicates = overlap_count > 0
 
     # 2. Check if every disease class present in original mapping appears in training split
     train_diseases = set(train_df["disease"].unique())
@@ -248,9 +257,11 @@ def verify_splits(
     missing_diseases = sorted(all_mapping_diseases - train_diseases)
     # Filter out diseases that had 0 samples in the entire merged dataset
     # We want to know if any disease present in merged_df is missing from train
-    merged_diseases = train_diseases | set(val_df["disease"].unique()) | set(test_df["disease"].unique())
+    merged_diseases = (
+        train_diseases | set(val_df["disease"].unique()) | set(test_df["disease"].unique())
+    )
     actual_missing_from_train = sorted(merged_diseases - train_diseases)
-    every_disease_in_train = (len(actual_missing_from_train) == 0)
+    every_disease_in_train = len(actual_missing_from_train) == 0
 
     # 3. Compile per-class sample count distributions
     idx_to_disease = {v: k for k, v in disease_mapping.items()}
@@ -265,7 +276,9 @@ def verify_splits(
             "train": train_dist.get(disease, 0),
             "val": val_dist.get(disease, 0),
             "test": test_dist.get(disease, 0),
-            "total": train_dist.get(disease, 0) + val_dist.get(disease, 0) + test_dist.get(disease, 0),
+            "total": train_dist.get(disease, 0)
+            + val_dist.get(disease, 0)
+            + test_dist.get(disease, 0),
         }
 
     return SplitStats(
@@ -287,6 +300,7 @@ def verify_splits(
 # Report Generator
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def write_split_report(stats: SplitStats, output_path: Path) -> None:
     """Generates the Markdown report summarizing split sizes, class balance, weights.
 
@@ -301,12 +315,16 @@ def write_split_report(stats: SplitStats, output_path: Path) -> None:
     # Map index to weight
     weights_by_disease: Dict[str, float] = {}
 
-    for disease_name, counts in sorted(stats.per_class_counts.items(), key=lambda x: -x[1]["total"]):
+    for disease_name, counts in sorted(
+        stats.per_class_counts.items(), key=lambda x: -x[1]["total"]
+    ):
         train_cnt = counts["train"]
         val_cnt = counts["val"]
         test_cnt = counts["test"]
         total_cnt = counts["total"]
-        weight = stats.class_weights.get(str(list(stats.per_class_counts.keys()).index(disease_name)), 1.0)
+        weight = stats.class_weights.get(
+            str(list(stats.per_class_counts.keys()).index(disease_name)), 1.0
+        )
         # Re-resolve the correct class weight matching index
         table_rows.append(
             f"| {disease_name:<40} | {total_cnt:>6} | {train_cnt:>6} | {val_cnt:>5} | {test_cnt:>5} |"
@@ -391,6 +409,7 @@ The following output assets have been generated and saved under `data/final/`:
 # ─────────────────────────────────────────────────────────────────────────────
 # Orchestrator Class
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class BioBERTDatasetSplitter:
     """Orchestrates Phase 2.2 dataset splitting, class weighting, and validation."""
@@ -498,6 +517,7 @@ class BioBERTDatasetSplitter:
 # Helper to reload mapping (similar to biobert_dataset_builder)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def load_disease_mapping(mapping_path: Path) -> Dict[str, int]:
     """Loads canonical mapping from JSON."""
     if not mapping_path.exists():
@@ -510,9 +530,11 @@ def load_disease_mapping(mapping_path: Path) -> Dict[str, int]:
 # CLI Entrypoint
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def main() -> None:
     """CLI entrypoint."""
     import sys
+
     try:
         splitter = BioBERTDatasetSplitter()
         result = splitter.run()

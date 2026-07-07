@@ -34,6 +34,7 @@ _DEFAULT_DROPOUT: float = 0.2
 # Preprocessing - identical to SymptomDataPreprocessor in training
 # ---------------------------------------------------------------------------
 
+
 def preprocess_symptom_text(raw_text: str) -> str:
     """Cleans free-text symptom input using the exact same logic applied
     during training in SymptomDataPreprocessor.preprocess_df.
@@ -62,6 +63,7 @@ def preprocess_symptom_text(raw_text: str) -> str:
 # ---------------------------------------------------------------------------
 # BioBERT Inference Pipeline
 # ---------------------------------------------------------------------------
+
 
 class NLPInferencePipeline:
     """Production-grade inference pipeline for BioBERT Symptom Classifier.
@@ -102,14 +104,25 @@ class NLPInferencePipeline:
             try:
                 with open(label_encoder_path, "rb") as f:
                     self.label_encoder = pickle.load(f)
-                self.idx_to_disease = {idx: str(disease) for idx, disease in enumerate(self.label_encoder.classes_)}
-                self.disease_to_idx = {str(disease): idx for idx, disease in enumerate(self.label_encoder.classes_)}
-                logger.info("Label encoder loaded. Re-aligned mapping with %d classes.", len(self.idx_to_disease))
+                self.idx_to_disease = {
+                    idx: str(disease) for idx, disease in enumerate(self.label_encoder.classes_)
+                }
+                self.disease_to_idx = {
+                    str(disease): idx for idx, disease in enumerate(self.label_encoder.classes_)
+                }
+                logger.info(
+                    "Label encoder loaded. Re-aligned mapping with %d classes.",
+                    len(self.idx_to_disease),
+                )
             except Exception as e:
                 logger.warning("Failed to load label encoder from %s: %s", label_encoder_path, e)
-                self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(Path(disease_mapping_path))
+                self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(
+                    Path(disease_mapping_path)
+                )
         else:
-            self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(Path(disease_mapping_path))
+            self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(
+                Path(disease_mapping_path)
+            )
 
         num_classes = len(self.disease_to_idx)
         logger.info("Disease mapping initialized: %d classes.", num_classes)
@@ -224,7 +237,9 @@ class NLPInferencePipeline:
             logger.warning(
                 "Could not load tokenizer from local dir (%s). "
                 "Falling back to HuggingFace Hub '%s': %s",
-                tokenizer_path, model_name, e,
+                tokenizer_path,
+                model_name,
+                e,
             )
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -254,7 +269,9 @@ class NLPInferencePipeline:
 
         logger.info(
             "NLP Inference Pipeline ready. Classes: %d | MaxLen: %d | Device: %s",
-            num_classes, max_length, self.device,
+            num_classes,
+            max_length,
+            self.device,
         )
 
     # -----------------------------------------------------------------------
@@ -352,7 +369,7 @@ class NLPInferencePipeline:
                     input_ids=input_ids,
                     attention_mask=attention_mask,
                 )
-                logits = outputs.logits              # [1, num_classes]
+                logits = outputs.logits  # [1, num_classes]
                 # Apply Temperature Scaling Confidence Calibration
                 calibrated_logits = logits / self.temperature
                 probabilities = F.softmax(calibrated_logits, dim=-1).squeeze(0)  # [num_classes]
@@ -366,15 +383,17 @@ class NLPInferencePipeline:
                 zip(top_probs.tolist(), top_indices.tolist()), start=1
             ):
                 disease_name = self.idx_to_disease.get(idx, f"Unknown({idx})")
-                top_predictions.append({
-                    "rank": rank,
-                    "disease": disease_name,
-                    "confidence": round(prob, 6),
-                })
+                top_predictions.append(
+                    {
+                        "rank": rank,
+                        "disease": disease_name,
+                        "confidence": round(prob, 6),
+                    }
+                )
 
             best = top_predictions[0]
             predicted_name = best["disease"]
-            
+
             # Fetch clinical explanation details
             explanation = self.explanations.get(predicted_name, None)
 
@@ -388,7 +407,8 @@ class NLPInferencePipeline:
 
             logger.info(
                 "NLP inference complete. Predicted: %s (confidence=%.4f)",
-                best["disease"], best["confidence"],
+                best["disease"],
+                best["confidence"],
             )
             return result
 
@@ -399,4 +419,3 @@ class NLPInferencePipeline:
                 message=f"NLP inference execution failed: {e}",
                 details={"symptom_text": symptom_text[:200]},
             )
-

@@ -79,7 +79,10 @@ class ConfigurationManager:
                 logging.warning("Failed to parse logging JSON configuration. Error: %s", e)
         else:
             logging.basicConfig(level=logging.INFO)
-            logging.warning("Logging config file not found at %s. Initialized basic configuration.", self.logging_path)
+            logging.warning(
+                "Logging config file not found at %s. Initialized basic configuration.",
+                self.logging_path,
+            )
 
     def _load_yaml(self, path: Path) -> dict[str, Any]:
         """Loads a YAML configuration file.
@@ -99,7 +102,7 @@ class ConfigurationManager:
             if hasattr(self, "logger"):
                 self.logger.error(error_msg)
             raise FileNotFoundError(error_msg)
-            
+
         try:
             with open(path, "r", encoding="utf-8") as f:
                 content = yaml.safe_load(f)
@@ -131,7 +134,7 @@ class ConfigurationManager:
         # Ensure sub-keys exist before overriding to prevent KeyErrors
         if "database" not in config_data:
             config_data["database"] = {}
-        
+
         # Override database parameters if declared in environment variables
         db_env_mappings = {
             "DB_HOST": "host",
@@ -140,7 +143,7 @@ class ConfigurationManager:
             "DB_PASSWORD": "password",
             "DB_NAME": "database_name",
         }
-        
+
         for env_var, config_key in db_env_mappings.items():
             val = os.getenv(env_var)
             if val is not None:
@@ -148,7 +151,9 @@ class ConfigurationManager:
                     try:
                         config_data["database"][config_key] = int(val)
                     except ValueError:
-                        self.logger.warning("Environment override DB_PORT is not a valid integer: %s", val)
+                        self.logger.warning(
+                            "Environment override DB_PORT is not a valid integer: %s", val
+                        )
                 else:
                     config_data["database"][config_key] = val
 

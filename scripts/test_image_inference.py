@@ -33,15 +33,20 @@ def main() -> None:
     if local_ckpt_dir.exists():
         has_checkpoints = any(local_ckpt_dir.glob("*.pth")) or any(local_ckpt_dir.glob("*.pt"))
 
-    gdrive_path = Path("content/drive/MyDrive/AI-Medical-Diagnosis-Assistant/checkpoints/image_model")
+    gdrive_path = Path(
+        "content/drive/MyDrive/AI-Medical-Diagnosis-Assistant/checkpoints/image_model"
+    )
     if gdrive_path.exists():
-        has_checkpoints = has_checkpoints or any(gdrive_path.glob("*.pth")) or any(gdrive_path.glob("*.pt"))
+        has_checkpoints = (
+            has_checkpoints or any(gdrive_path.glob("*.pth")) or any(gdrive_path.glob("*.pt"))
+        )
 
     if not has_checkpoints:
         logger.info("No checkpoints found. Generating a dummy checkpoint for verification.")
         local_ckpt_dir.mkdir(parents=True, exist_ok=True)
         import torch
         from src.components.model_trainer import EfficientNetClassifier
+
         model = EfficientNetClassifier(num_classes=4, freeze_backbone=True, dropout=0.3)
         dummy_ckpt = {
             "epoch": 0,

@@ -1,4 +1,5 @@
 ﻿"""Writes the Streamlit frontend application."""
+
 import pathlib
 
 APP = r'''"""AI Medical Diagnosis Assistant — Streamlit Frontend.

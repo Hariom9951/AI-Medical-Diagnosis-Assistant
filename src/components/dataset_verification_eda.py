@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, Final, List, Tuple
 
 import matplotlib
+
 matplotlib.use("Agg")  # Non-interactive backend to run on headless environments
 import matplotlib.pyplot as plt
 import pandas as pd  # type: ignore[import-untyped]
@@ -71,7 +72,7 @@ class EDAConfig:
                 "raw_symptoms_csv",
                 "reports_dir",
                 "plots_dir",
-                "supported_image_formats"
+                "supported_image_formats",
             ]
             missing_keys = [k for k in required_keys if k not in config_dict]
             if missing_keys:
@@ -145,15 +146,19 @@ class DatasetVerificationEDA:
             )
 
         # Basic scanning setup
-        class_folders = [p for p in self.config.raw_images_dir.iterdir() if p.is_dir() and p.name != "masks"]
-        
+        class_folders = [
+            p for p in self.config.raw_images_dir.iterdir() if p.is_dir() and p.name != "masks"
+        ]
+
         # In case the images directory is empty or nested under secondary folders
         if not class_folders:
             # Check if there's a nested parent dir
             subdirs = [p for p in self.config.raw_images_dir.glob("**/") if p.is_dir()]
             for d in subdirs:
                 if d.name in ["COVID", "Normal", "Lung_Opacity", "Viral Pneumonia"]:
-                    class_folders = [p for p in d.parent.iterdir() if p.is_dir() and p.name != "masks"]
+                    class_folders = [
+                        p for p in d.parent.iterdir() if p.is_dir() and p.name != "masks"
+                    ]
                     break
 
         img_stats: Dict[str, Any] = {
@@ -167,7 +172,7 @@ class DatasetVerificationEDA:
             "widths": [],
             "aspect_ratios": [],
             "file_sizes_bytes": [],
-            "class_sample_paths": {}
+            "class_sample_paths": {},
         }
 
         # Keep track of file hashes to detect duplicate scans
@@ -176,20 +181,22 @@ class DatasetVerificationEDA:
         # Scan each class folder
         for folder in class_folders:
             class_name = folder.name
-            
+
             # Find subfolders that are empty
             subfolders = [p for p in folder.glob("**/") if p.is_dir()]
             for sub in subfolders:
                 try:
                     if not any(sub.iterdir()):
-                        img_stats["empty_folders"].append(str(sub.relative_to(self.config.raw_images_dir)))
+                        img_stats["empty_folders"].append(
+                            str(sub.relative_to(self.config.raw_images_dir))
+                        )
                 except PermissionError:
                     pass
 
             # Scan images inside target class directory
             # Handles files recursively under folder/images/ or folder/ directly
             class_files = [p for p in folder.glob("**/*") if p.is_file()]
-            
+
             if not class_files:
                 continue
 
@@ -198,10 +205,12 @@ class DatasetVerificationEDA:
 
             for file_path in class_files:
                 suffix = file_path.suffix.lower()
-                
+
                 # Check format validity
                 if suffix not in self.config.supported_image_formats:
-                    img_stats["unsupported_files"].append(str(file_path.relative_to(self.config.raw_images_dir)))
+                    img_stats["unsupported_files"].append(
+                        str(file_path.relative_to(self.config.raw_images_dir))
+                    )
                     continue
 
                 img_stats["total_images"] += 1
@@ -221,18 +230,22 @@ class DatasetVerificationEDA:
                         img_stats["widths"].append(w)
                         img_stats["heights"].append(h)
                         img_stats["aspect_ratios"].append(w / h)
-                        
+
                         # Save path for random sampling later (limit to 50 paths to avoid RAM bloat)
                         if len(img_stats["class_sample_paths"][class_name]) < 50:
                             img_stats["class_sample_paths"][class_name].append(file_path)
                 except Exception as e:
                     logger.warning("Corrupted image detected at %s: %s", file_path, e)
-                    img_stats["corrupted"].append(str(file_path.relative_to(self.config.raw_images_dir)))
+                    img_stats["corrupted"].append(
+                        str(file_path.relative_to(self.config.raw_images_dir))
+                    )
 
         # Group duplicate lists
         for f_hash, paths in file_hashes.items():
             if len(paths) > 1:
-                img_stats["duplicates"][f_hash] = [str(p.relative_to(self.config.raw_images_dir)) for p in paths]
+                img_stats["duplicates"][f_hash] = [
+                    str(p.relative_to(self.config.raw_images_dir)) for p in paths
+                ]
 
         # Calculate averages and distributions
         total_size = sum(img_stats["file_sizes_bytes"])
@@ -255,10 +268,12 @@ class DatasetVerificationEDA:
             plt.figure(figsize=(8, 5))
             classes = list(img_stats["classes"].keys())
             counts = list(img_stats["classes"].values())
-            
+
             # Choose medical-themed aesthetic colors
             plt.bar(classes, counts, color="#2c7fb8", edgecolor="#253494", width=0.6)
-            plt.title("Class Balance Distribution - Image Scans", fontsize=12, fontweight="bold", pad=15)
+            plt.title(
+                "Class Balance Distribution - Image Scans", fontsize=12, fontweight="bold", pad=15
+            )
             plt.xlabel("Disease Categories", fontsize=10)
             plt.ylabel("Number of Scans", fontsize=10)
             plt.grid(axis="y", linestyle="--", alpha=0.5)
@@ -269,7 +284,7 @@ class DatasetVerificationEDA:
         # 2. Plot Resolution Histogram
         if img_stats["widths"] and img_stats["heights"]:
             plt.figure(figsize=(10, 5))
-            
+
             # Height/Width histograms
             plt.subplot(1, 2, 1)
             plt.hist(img_stats["widths"], bins=20, color="#7fcdbb", edgecolor="#1d91c0")
@@ -277,14 +292,14 @@ class DatasetVerificationEDA:
             plt.xlabel("Width (pixels)")
             plt.ylabel("Frequency")
             plt.grid(axis="y", linestyle="--", alpha=0.5)
-            
+
             plt.subplot(1, 2, 2)
             plt.hist(img_stats["heights"], bins=20, color="#edf8b1", edgecolor="#d7301f")
             plt.title("Image Heights Distribution", fontsize=10, fontweight="bold")
             plt.xlabel("Height (pixels)")
             plt.ylabel("Frequency")
             plt.grid(axis="y", linestyle="--", alpha=0.5)
-            
+
             plt.tight_layout()
             plt.savefig(self.config.plots_dir / "image_resolutions_histogram.png", dpi=150)
             plt.close()
@@ -307,16 +322,16 @@ class DatasetVerificationEDA:
                 continue
             class_samples_dir = samples_root / class_name
             class_samples_dir.mkdir(parents=True, exist_ok=True)
-            
+
             # Select 5 random files from available subset
             selected = random.sample(paths, min(5, len(paths)))
             img_stats["exported_samples"][class_name] = []
-            
+
             for i, p in enumerate(selected):
                 dest_name = f"sample_{i}_{p.name}"
                 dest_path = class_samples_dir / dest_name
                 shutil.copy(p, dest_path)
-                
+
                 # Save relative path from plots_dir for report mapping
                 rel_path = dest_path.relative_to(self.config.plots_dir)
                 img_stats["exported_samples"][class_name].append(str(rel_path))
@@ -367,10 +382,14 @@ class DatasetVerificationEDA:
         if disease_col:
             disease_series = df[disease_col].dropna().astype(str).str.strip()
             disease_counts = disease_series.value_counts().to_dict()
-            
+
             # Label validation: Flag labels with numbers/symbols or empty strings as invalid
             for label in disease_series.unique():
-                if not label or label.lower() in ["none", "null", "n/a", ""] or not label.replace("_", "").replace(" ", "").isalpha():
+                if (
+                    not label
+                    or label.lower() in ["none", "null", "n/a", ""]
+                    or not label.replace("_", "").replace(" ", "").isalpha()
+                ):
                     invalid_labels.append(label)
 
         # 4. Count complete empty records (rows where all columns except primary ID are null)
@@ -387,7 +406,7 @@ class DatasetVerificationEDA:
             "disease_counts": disease_counts,
             "invalid_labels": invalid_labels,
             "empty_records": empty_records_count,
-            "first_10_rows": df.head(10).values.tolist()
+            "first_10_rows": df.head(10).values.tolist(),
         }
 
         logger.info("Tabular profiling completed. Rows: %d, Columns: %d", row_count, col_count)
@@ -419,7 +438,9 @@ class DatasetVerificationEDA:
             plt.figure(figsize=(12, 6))
             counts = df[disease_col].value_counts().head(15)
             counts.plot(kind="bar", color="#a1dab4", edgecolor="#41b6c4")
-            plt.title("Top 15 Disease Diagnostic Frequencies", fontsize=12, fontweight="bold", pad=15)
+            plt.title(
+                "Top 15 Disease Diagnostic Frequencies", fontsize=12, fontweight="bold", pad=15
+            )
             plt.xlabel("Diseases")
             plt.ylabel("Record Counts")
             plt.xticks(rotation=45, ha="right", fontsize=9)
@@ -433,19 +454,31 @@ class DatasetVerificationEDA:
         symptom_cols = [col for col in df.columns if col.lower() != "disease"]
         all_symptoms = []
         for col in symptom_cols:
-            all_symptoms.extend(df[col].dropna().astype(str).str.strip().str.replace("_", " ").tolist())
-        
+            all_symptoms.extend(
+                df[col].dropna().astype(str).str.strip().str.replace("_", " ").tolist()
+            )
+
         # Filter out empty entries
         all_symptoms = [s for s in all_symptoms if s not in ["", "none", "nan"]]
-        
+
         symptom_series = pd.Series(all_symptoms)
         top_symptoms = symptom_series.value_counts().head(20).to_dict()
         symptom_stats["top_symptoms"] = top_symptoms
 
         if top_symptoms:
             plt.figure(figsize=(12, 6))
-            plt.bar(list(top_symptoms.keys()), list(top_symptoms.values()), color="#feb24c", edgecolor="#f03b20")
-            plt.title("Top 20 Patient-Reported Symptoms Frequencies", fontsize=12, fontweight="bold", pad=15)
+            plt.bar(
+                list(top_symptoms.keys()),
+                list(top_symptoms.values()),
+                color="#feb24c",
+                edgecolor="#f03b20",
+            )
+            plt.title(
+                "Top 20 Patient-Reported Symptoms Frequencies",
+                fontsize=12,
+                fontweight="bold",
+                pad=15,
+            )
             plt.xlabel("Symptoms")
             plt.ylabel("Occurrences in Dataset")
             plt.xticks(rotation=45, ha="right", fontsize=9)
@@ -466,7 +499,8 @@ class DatasetVerificationEDA:
         # 1. Dataset_Verification_Report.md
         verification_path = self.config.reports_dir / "Dataset_Verification_Report.md"
         with open(verification_path, "w", encoding="utf-8") as f:
-            f.write(f"""# Dataset Verification Report
+            f.write(
+                f"""# Dataset Verification Report
 
 This report presents structural validation and integrity checks for the raw ingested clinical datasets.
 
@@ -501,12 +535,14 @@ This report presents structural validation and integrity checks for the raw inge
 
 *   **Verdict:** **PASSED**
 *   *Note:* Minor missing cells inside tabular symptoms are expected due to varying patient cases and will be resolved in Phase 12 (Data Transformation). No file corruption or Zip Slip traversal vectors are present.
-""")
+"""
+            )
 
         # 2. EDA_Report.md
         eda_path = self.config.reports_dir / "EDA_Report.md"
         with open(eda_path, "w", encoding="utf-8") as f:
-            f.write(f"""# Exploratory Data Analysis (EDA) Report
+            f.write(
+                f"""# Exploratory Data Analysis (EDA) Report
 
 Provides statistics on features distributions and patterns.
 
@@ -524,23 +560,27 @@ Provides statistics on features distributions and patterns.
 
 ## 2. Class Balance Distributions
 
-""")
+"""
+            )
             # Print class counts
             for cls_name, count in img_stats["classes"].items():
                 f.write(f"*   **{cls_name}:** `{count} scans`\n")
 
-            f.write(f"""
+            f.write(
+                f"""
 ---
 
 ## 3. Top Tabular Symptom Frequencies
 
-""")
+"""
+            )
             # Print top symptoms
             top_symps = symptom_stats.get("top_symptoms", {})
             for symp, count in list(top_symps.items())[:10]:
                 f.write(f"*   **{symp}:** `{count} occurrences`\n")
 
-            f.write(f"""
+            f.write(
+                f"""
 ---
 
 ## 4. Visualizations Map
@@ -550,12 +590,14 @@ All plots are successfully generated and saved to:
 *   Symptom Missingness Matrix: `symptom_missingness_heatmap.png`
 *   Diagnostic Frequencies: `disease_frequency.png`
 *   Symptom Occurrences: `symptom_frequency.png`
-""")
+"""
+            )
 
         # 3. Summary_Report.md
         summary_path = self.config.reports_dir / "Summary_Report.md"
         with open(summary_path, "w", encoding="utf-8") as f:
-            f.write(f"""# Summary Report
+            f.write(
+                f"""# Summary Report
 
 Dataset Health Check and Pipeline Verification Summary.
 
@@ -575,7 +617,8 @@ Dataset Health Check and Pipeline Verification Summary.
 *   **Execution Status:** Success
 *   **Reports Output Folder:** `docs/reports/`
 *   **Plots Output Folder:** `artifacts/eda/`
-""")
+"""
+            )
 
     def run_eda_pipeline(self) -> None:
         """Orchestrates image audits, tabular profiling, and document generations."""

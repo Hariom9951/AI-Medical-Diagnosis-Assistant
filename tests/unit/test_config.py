@@ -164,7 +164,9 @@ storage:
         config_manager.get_app_config()
 
 
-def test_configuration_manager_env_override(temp_config_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_configuration_manager_env_override(
+    temp_config_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Asserts that environment variable overrides function correctly."""
     # Setup environment variables using monkeypatch
     monkeypatch.setenv("DB_HOST", "production-db-url.com")

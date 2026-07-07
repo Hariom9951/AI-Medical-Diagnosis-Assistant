@@ -33,7 +33,8 @@ st.set_page_config(
 )
 
 # ── Custom CSS ───────────────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(
+    """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -292,10 +293,13 @@ section[data-testid="stSidebar"] .block-container {
     opacity: 0.95 !important;
 }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 import json
 from typing import Dict, Any
+
 
 def get_model_metadata() -> Dict[str, Any]:
     """Dynamically reads and evaluates NLP and Image model checkpoint metadata."""
@@ -310,12 +314,13 @@ def get_model_metadata() -> Dict[str, Any]:
         "nlp_epoch": "N/A",
         "nlp_val_acc": "N/A",
     }
-    
+
     # 1. Load Image Checkpoint metadata
     img_ckpt = Path("artifacts/checkpoints/checkpoint_epoch_050.pth")
     if img_ckpt.exists():
         try:
             import torch
+
             checkpoint_data = torch.load(img_ckpt, map_location="cpu", weights_only=False)
             if isinstance(checkpoint_data, dict):
                 ep = checkpoint_data.get("epoch", None)
@@ -336,15 +341,15 @@ def get_model_metadata() -> Dict[str, Any]:
                 nlp_meta = json.load(f)
             metadata["nlp_model"] = nlp_meta.get("model_name", metadata["nlp_model"])
             metadata["nlp_checkpoint"] = nlp_meta.get("checkpoint", metadata["nlp_checkpoint"])
-            
+
             num_classes = nlp_meta.get("num_classes", None)
             if num_classes is not None:
                 metadata["nlp_classes"] = f"{num_classes} diseases"
-                
+
             val_acc = nlp_meta.get("validation_accuracy", None)
             if val_acc is not None:
                 metadata["nlp_val_acc"] = f"{val_acc}%"
-                
+
             epoch = nlp_meta.get("epoch", None)
             if epoch is not None:
                 metadata["nlp_epoch"] = str(epoch)
@@ -356,10 +361,12 @@ def get_model_metadata() -> Dict[str, Any]:
 
 # ── Cached pipeline loaders ──────────────────────────────────────────────────
 
+
 @st.cache_resource(show_spinner=False)
 def load_image_pipeline():
     """Loads and caches the Image Inference Pipeline."""
     from src.inference.predict import ImageInferencePipeline
+
     return ImageInferencePipeline(
         config_path=Path("configs/training_config.yaml"),
         checkpoint_path=Path("artifacts/checkpoints/checkpoint_epoch_050.pth"),
@@ -370,6 +377,7 @@ def load_image_pipeline():
 def load_nlp_pipeline():
     """Loads and caches the NLP Inference Pipeline."""
     from src.inference.nlp_predict import NLPInferencePipeline
+
     return NLPInferencePipeline(
         checkpoint_path=Path("artifacts/checkpoints_nlp/best_model.pt"),
         tokenizer_dir=Path("artifacts/checkpoints_nlp"),
@@ -379,14 +387,15 @@ def load_nlp_pipeline():
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def confidence_color(conf: float) -> str:
     """Returns a CSS colour string based on confidence level."""
     if conf >= 0.75:
-        return "#34d399"   # green
+        return "#34d399"  # green
     elif conf >= 0.45:
-        return "#fbbf24"   # amber
+        return "#fbbf24"  # amber
     else:
-        return "#f87171"   # red
+        return "#f87171"  # red
 
 
 def render_prediction_bar(rank: int, disease: str, confidence: float) -> None:
@@ -416,7 +425,7 @@ with st.sidebar:
         '<span style="font-size:2.5rem">🏥</span>'
         '<h2 style="color:white;margin:0.3rem 0 0 0;font-size:1.3rem">AI Diagnosis</h2>'
         '<p style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin:0">Assistant v2.0 (BioBERT)</p>'
-        '</div>',
+        "</div>",
         unsafe_allow_html=True,
     )
 
@@ -433,7 +442,8 @@ with st.sidebar:
 
     meta = get_model_metadata()
 
-    st.markdown(f"""
+    st.markdown(
+        f"""
     <div style="color:rgba(255,255,255,0.65);font-size:0.8rem;line-height:1.4">
     <b style="color:white;font-size:0.85rem">🧠 MODEL METADATA</b><br><br>
     🖼️ <b>Image Model</b><br>
@@ -447,24 +457,29 @@ with st.sidebar:
     &nbsp;&nbsp;&nbsp;&nbsp;Epoch: {meta['nlp_epoch']}<br>
     &nbsp;&nbsp;&nbsp;&nbsp;Val Accuracy: {meta['nlp_val_acc']}<br>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     st.markdown("---")
     st.markdown(
         '<p style="color:rgba(255,255,255,0.3);font-size:0.75rem;text-align:center">'
-        'For research use only</p>',
+        "For research use only</p>",
         unsafe_allow_html=True,
     )
 
 
 # ── Hero Banner ──────────────────────────────────────────────────────────────
 
-st.markdown("""
+st.markdown(
+    """
 <div class="hero-banner">
     <h1>🏥 AI Medical Diagnosis Assistant</h1>
     <p>Powered by EfficientNet-B0 & BioBERT — Advanced deep learning for medical screening</p>
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -509,13 +524,16 @@ if "Chest X-ray" in mode:
         unsafe_allow_html=True,
     )
 
-    st.markdown("""
+    st.markdown(
+        """
     <div class="info-box">
     Upload a chest X-ray image (PNG, JPG, JPEG). The model will predict whether
     the scan shows <b>COVID-19</b>, <b>Lung Opacity</b>, <b>Normal</b>, or
     <b>Viral Pneumonia</b> using a trained EfficientNet-B0 classifier.
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     col_upload, col_preview = st.columns([1, 1])
 
@@ -555,27 +573,34 @@ if "Chest X-ray" in mode:
             st.session_state.image_overlay_path = None
             st.session_state.last_image_name = None
 
-            st.markdown("""
+            st.markdown(
+                """
             <div style="border:2px dashed rgba(255,255,255,0.15);border-radius:12px;
                         padding:3rem;text-align:center;color:rgba(255,255,255,0.3)">
                 <div style="font-size:2.5rem;margin-bottom:0.5rem">🩻</div>
                 <div>X-ray preview will appear here</div>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
 
     # ── Run inference ────────────────────────────────────────────────────────
     if run_image:
         if uploaded_file is None:
-            st.markdown("""
+            st.markdown(
+                """
             <div class="result-card-error">
             ⚠️ <b>No image uploaded.</b> Please upload a chest X-ray image before running analysis.
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
         else:
             with st.spinner("Loading image model & running inference..."):
                 try:
                     pipeline = load_image_pipeline()
                     from PIL import Image as PILImage
+
                     pil_img = PILImage.open(uploaded_file).convert("RGB")
 
                     # Predict
@@ -593,8 +618,10 @@ if "Chest X-ray" in mode:
 
                         # Build model target index
                         class_probs = result["class_probabilities"]
-                        sorted_preds = sorted(class_probs.items(), key=lambda x: x[1], reverse=True)[:3]
-                        
+                        sorted_preds = sorted(
+                            class_probs.items(), key=lambda x: x[1], reverse=True
+                        )[:3]
+
                         # Map prediction label to its class index in model's order
                         # Model Classes: ["COVID", "Lung_Opacity", "Normal", "Viral Pneumonia"]
                         pred_disease = result["predicted_disease"]
@@ -607,10 +634,10 @@ if "Chest X-ray" in mode:
 
                         if heatmap is not None:
                             visualizer = GradCAMVisualizer()
-                            heatmap_img, overlay_img, overlay_path = visualizer.create_visualization(
-                                original_image=pil_img,
-                                heatmap=heatmap,
-                                alpha=0.6
+                            heatmap_img, overlay_img, overlay_path = (
+                                visualizer.create_visualization(
+                                    original_image=pil_img, heatmap=heatmap, alpha=0.6
+                                )
                             )
                             st.session_state.image_heatmap_img = heatmap_img
                             st.session_state.image_overlay_img = overlay_img
@@ -632,7 +659,7 @@ if "Chest X-ray" in mode:
                         confidence=result["confidence"],
                         predictions=predictions_list,
                         model_used="EfficientNet-B0",
-                        inference_time_ms=st.session_state.image_inference_time
+                        inference_time_ms=st.session_state.image_inference_time,
                     )
                     st.session_state.image_report_path = str(pdf_path)
 
@@ -652,39 +679,46 @@ if "Chest X-ray" in mode:
         inference_time_ms = st.session_state.image_inference_time
         pdf_path_str = st.session_state.image_report_path
 
-        sorted_preds = sorted(
-            class_probs.items(), key=lambda x: x[1], reverse=True
-        )[:3]
+        sorted_preds = sorted(class_probs.items(), key=lambda x: x[1], reverse=True)[:3]
 
         st.markdown('<p class="section-header">📊 Diagnosis Results</p>', unsafe_allow_html=True)
 
         # Top metrics row
         m1, m2, m3 = st.columns(3)
         with m1:
-            st.markdown(f"""
+            st.markdown(
+                f"""
             <div class="metric-tile">
                 <div class="metric-label">Predicted Condition</div>
                 <div class="disease-name">{predicted}</div>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
         with m2:
             conf_pct = f"{confidence*100:.2f}%"
             col = confidence_color(confidence)
-            st.markdown(f"""
+            st.markdown(
+                f"""
             <div class="metric-tile">
                 <div class="metric-label">Confidence Score</div>
                 <div class="metric-value" style="color:{col}">{conf_pct}</div>
                 <div class="metric-sub">Model certainty</div>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
         with m3:
-            st.markdown(f"""
+            st.markdown(
+                f"""
             <div class="metric-tile">
                 <div class="metric-label">Inference Time</div>
                 <div class="metric-value" style="font-size:1.6rem">{inference_time_ms:.1f} ms</div>
                 <div class="metric-sub">EfficientNet-B0 execution</div>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -701,25 +735,34 @@ if "Chest X-ray" in mode:
         if st.session_state.image_heatmap_img is not None:
             st.markdown("<br>", unsafe_allow_html=True)
             show_explanation = st.checkbox("🔍 Show AI Explanation (Grad-CAM)")
-            
+
             if show_explanation:
                 st.markdown(
                     '<p style="color:rgba(255,255,255,0.7);font-weight:600;'
                     'margin-bottom:0.8rem">Grad-CAM Visual Attention Mapping</p>',
                     unsafe_allow_html=True,
                 )
-                
+
                 # Show 3 columns: Original, Heatmap, Overlay
                 col_orig, col_heat, col_over = st.columns(3)
                 with col_orig:
                     # Retrieve the original uploaded image file directly to display
                     from PIL import Image as PILImage
+
                     pil_img = PILImage.open(uploaded_file)
                     st.image(pil_img, caption="Original X-ray Scan", use_container_width=True)
                 with col_heat:
-                    st.image(st.session_state.image_heatmap_img, caption="Attention Heatmap (Conv2D Activation)", use_container_width=True)
+                    st.image(
+                        st.session_state.image_heatmap_img,
+                        caption="Attention Heatmap (Conv2D Activation)",
+                        use_container_width=True,
+                    )
                 with col_over:
-                    st.image(st.session_state.image_overlay_img, caption=f"Attention Overlay on {predicted}", use_container_width=True)
+                    st.image(
+                        st.session_state.image_overlay_img,
+                        caption=f"Attention Overlay on {predicted}",
+                        use_container_width=True,
+                    )
 
         # Download Report Block
         if pdf_path_str and Path(pdf_path_str).exists():
@@ -747,13 +790,16 @@ else:
         unsafe_allow_html=True,
     )
 
-    st.markdown("""
+    st.markdown(
+        """
     <div class="info-box">
     Describe your symptoms in plain English. The model will analyse the text
     using a fine-tuned <b>BioBERT</b> transformer and predict the most likely
     condition from <b>41 diseases</b>.
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # Example chips
     EXAMPLES = [
@@ -766,7 +812,7 @@ else:
 
     st.markdown(
         '<p style="color:rgba(255,255,255,0.5);font-size:0.85rem;margin-bottom:0.4rem">'
-        'Quick examples:</p>',
+        "Quick examples:</p>",
         unsafe_allow_html=True,
     )
     ex_cols = st.columns(len(EXAMPLES))
@@ -784,7 +830,7 @@ else:
         "**Describe Symptoms**",
         value=st.session_state.get("symptom_text_val", ""),
         height=140,
-        placeholder="Type your symptoms here (e.g., 'cough, high fever, running nose, shivering...')"
+        placeholder="Type your symptoms here (e.g., 'cough, high fever, running nose, shivering...')",
     )
 
     cleaned_input = symptom_input.strip()
@@ -803,11 +849,14 @@ else:
     # ── Run inference ────────────────────────────────────────────────────────
     if run_nlp:
         if not cleaned_input:
-            st.markdown("""
+            st.markdown(
+                """
             <div class="result-card-error">
             ⚠️ <b>No symptoms entered.</b> Please describe your symptoms before running analysis.
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
         else:
             with st.spinner("Loading NLP model & running inference..."):
                 try:
@@ -829,7 +878,7 @@ else:
                         confidence=result["confidence"],
                         predictions=result["top_predictions"],
                         model_used="BioBERT",
-                        inference_time_ms=st.session_state.nlp_inference_time
+                        inference_time_ms=st.session_state.nlp_inference_time,
                     )
                     st.session_state.nlp_report_path = str(pdf_path)
 
@@ -854,30 +903,39 @@ else:
 
         m1, m2, m3 = st.columns(3)
         with m1:
-            st.markdown(f"""
+            st.markdown(
+                f"""
             <div class="metric-tile">
                 <div class="metric-label">Predicted Condition</div>
                 <div class="disease-name">{predicted}</div>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
         with m2:
             conf_pct = f"{confidence*100:.2f}%"
             col = confidence_color(confidence)
-            st.markdown(f"""
+            st.markdown(
+                f"""
             <div class="metric-tile">
                 <div class="metric-label">Confidence Score</div>
                 <div class="metric-value" style="color:{col}">{conf_pct}</div>
                 <div class="metric-sub">Model certainty</div>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
         with m3:
-            st.markdown(f"""
+            st.markdown(
+                f"""
             <div class="metric-tile">
                 <div class="metric-label">Inference Time</div>
                 <div class="metric-value" style="font-size:1.6rem">{inference_time_ms:.1f} ms</div>
                 <div class="metric-sub">BioBERT execution</div>
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -901,11 +959,15 @@ else:
         explanation = result.get("clinical_explanation", None)
         if explanation:
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown('<p class="section-header">🩺 Clinical Explanation & Guidance</p>', unsafe_allow_html=True)
-            
+            st.markdown(
+                '<p class="section-header">🩺 Clinical Explanation & Guidance</p>',
+                unsafe_allow_html=True,
+            )
+
             e_col1, e_col2 = st.columns(2)
             with e_col1:
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                 <div class="medical-card" style="height: 100%;">
                     <h4 style="color:#60a5fa;margin-top:0;margin-bottom:0.8rem">📋 Medical Guidance</h4>
                     <p style="margin-bottom:0.5rem"><b>Recommended Specialist:</b> {explanation['specialist']}</p>
@@ -915,11 +977,14 @@ else:
                     </ul>
                     <p style="margin-bottom:0"><b>Similar Conditions to Rule Out:</b> {', '.join(explanation['similar_diseases'])}</p>
                 </div>
-                """, unsafe_allow_html=True)
-            
+                """,
+                    unsafe_allow_html=True,
+                )
+
             with e_col2:
                 # Highlight warning signs if critical
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                 <div class="warning-card" style="height: 100%;">
                     <h4 style="color:#f87171;margin-top:0;margin-bottom:0.8rem">⚠️ Emergency Warning Signs</h4>
                     <p style="color:#fbcfe8; margin-bottom:0.8rem"><b>Warning Signs:</b> {explanation['emergency_signs']}</p>
@@ -927,7 +992,9 @@ else:
                     <p style="margin-bottom:0.4rem"><b>Care:</b> {explanation['home_care']}</p>
                     <p style="margin-bottom:0"><b>Lifestyle:</b> {explanation['lifestyle']}</p>
                 </div>
-                """, unsafe_allow_html=True)
+                """,
+                    unsafe_allow_html=True,
+                )
 
         # Download Report Block
         if pdf_path_str and Path(pdf_path_str).exists():
@@ -945,10 +1012,13 @@ else:
 
 
 # ── Medical disclaimer ───────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(
+    """
 <div class="disclaimer">
 ⚕️ <b>Medical Disclaimer:</b> This tool is for research and educational purposes only.
 It is <b>not</b> a substitute for professional medical advice, diagnosis, or treatment.
 Always consult a qualified healthcare provider.
 </div>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)

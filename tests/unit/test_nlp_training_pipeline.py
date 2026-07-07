@@ -83,7 +83,7 @@ def test_nlp_training_pipeline_run(
     mock_mlflow: MagicMock,
     mock_tokenizer_class: MagicMock,
     mock_trainer_class: MagicMock,
-    test_pipeline_config: Path
+    test_pipeline_config: Path,
 ) -> None:
     """Verifies that NLPTrainingPipeline executes steps, creates loaders, and saves artifacts."""
     # 1. Setup mock tokenizer
@@ -91,7 +91,7 @@ def test_nlp_training_pipeline_run(
     mock_tokenizer.vocab_size = 30522
     mock_tokenizer.return_value = {
         "input_ids": torch.zeros((1, 8), dtype=torch.long),
-        "attention_mask": torch.ones((1, 8), dtype=torch.long)
+        "attention_mask": torch.ones((1, 8), dtype=torch.long),
     }
     mock_tokenizer.save_pretrained = lambda path: Path(path).mkdir(parents=True, exist_ok=True)
     mock_tokenizer_class.return_value = mock_tokenizer
@@ -99,8 +99,22 @@ def test_nlp_training_pipeline_run(
     # 2. Setup mock trainer
     mock_trainer = MagicMock()
     mock_trainer.train.return_value = [
-        {"train_loss": 0.5, "train_acc": 0.6, "val_loss": 0.4, "val_acc": 0.7, "learning_rate": 2e-5, "epoch_time_s": 1.2},
-        {"train_loss": 0.3, "train_acc": 0.8, "val_loss": 0.2, "val_acc": 0.9, "learning_rate": 2e-5, "epoch_time_s": 1.1}
+        {
+            "train_loss": 0.5,
+            "train_acc": 0.6,
+            "val_loss": 0.4,
+            "val_acc": 0.7,
+            "learning_rate": 2e-5,
+            "epoch_time_s": 1.2,
+        },
+        {
+            "train_loss": 0.3,
+            "train_acc": 0.8,
+            "val_loss": 0.2,
+            "val_acc": 0.9,
+            "learning_rate": 2e-5,
+            "epoch_time_s": 1.1,
+        },
     ]
     mock_trainer_class.return_value = mock_trainer
 

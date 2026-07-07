@@ -58,8 +58,10 @@ class AppLogger:
             except Exception as e:
                 # Direct fallback initialization
                 logging.basicConfig(level=default_level)
-                logging.warning("Failed to configure logging via JSON at %s. Error: %s", config_path, e)
-        
+                logging.warning(
+                    "Failed to configure logging via JSON at %s. Error: %s", config_path, e
+                )
+
         # Programmatic Fallback Configuration
         root_logger = logging.getLogger()
         root_logger.setLevel(default_level)
@@ -125,6 +127,7 @@ def log_exception(logger: logging.Logger) -> Callable[[F], F]:
     Returns:
         Callable: The wrapped decorator function.
     """
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -140,4 +143,5 @@ def log_exception(logger: logging.Logger) -> Callable[[F], F]:
                 raise
 
         return cast(F, wrapper)
+
     return decorator

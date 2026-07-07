@@ -26,6 +26,7 @@ from src.components.model_trainer import (
 # Fixtures
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def config_yaml(tmp_path: Path) -> Path:
     """Creates a minimal valid training_config.yaml for testing."""
@@ -75,6 +76,7 @@ def trainer(config_yaml: Path) -> ImageClassifierTrainer:
 # ─────────────────────────────────────────────────────────────────────────────
 # Model Architecture Tests
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def test_efficientnet_forward_output_shape(frozen_classifier: EfficientNetClassifier) -> None:
     """Asserts model forward pass output shape is [B, num_classes]."""
@@ -126,6 +128,7 @@ def test_model_summary_counts(frozen_classifier: EfficientNetClassifier) -> None
 # Early Stopping Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def test_early_stopping_triggers() -> None:
     """Asserts stop flag fires after patience consecutive non-improving epochs.
 
@@ -161,6 +164,7 @@ def test_early_stopping_no_trigger_before_patience() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 # Optimizer / Scheduler Factory Tests
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def test_optimizer_adamw(trainer: ImageClassifierTrainer) -> None:
     """Asserts build_optimizer returns AdamW when config specifies 'adamw'."""
@@ -212,6 +216,7 @@ def test_scheduler_none(config_yaml: Path, tmp_path: Path) -> None:
 # Checkpoint Save / Load Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def test_checkpoint_save_and_load(trainer: ImageClassifierTrainer, tmp_path: Path) -> None:
     """Saves a checkpoint and restores it, verifying state dict keys match."""
     ckpt_path = tmp_path / "test_checkpoint.pth"
@@ -222,9 +227,15 @@ def test_checkpoint_save_and_load(trainer: ImageClassifierTrainer, tmp_path: Pat
     assert ckpt_path.exists()
 
     # Rebuild trainer and load
-    trainer2 = ImageClassifierTrainer(trainer.config.checkpoint_dir.parent / "training_config.yaml"
-                                      if False else trainer.config.best_model_path.parent.parent / "training_config.yaml"
-                                      if False else Path(str(ckpt_path).replace("test_checkpoint.pth", "training_config.yaml")))
+    trainer2 = ImageClassifierTrainer(
+        trainer.config.checkpoint_dir.parent / "training_config.yaml"
+        if False
+        else (
+            trainer.config.best_model_path.parent.parent / "training_config.yaml"
+            if False
+            else Path(str(ckpt_path).replace("test_checkpoint.pth", "training_config.yaml"))
+        )
+    )
 
     # Load using original trainer since config path is embedded
     loaded = trainer.load_checkpoint(ckpt_path)
@@ -235,6 +246,7 @@ def test_checkpoint_save_and_load(trainer: ImageClassifierTrainer, tmp_path: Pat
 # ─────────────────────────────────────────────────────────────────────────────
 # Train / Validate Step Tests
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def test_train_and_validate_one_epoch(trainer: ImageClassifierTrainer) -> None:
     """Runs one mini train+validate step with synthetic data, verifies metric ranges."""

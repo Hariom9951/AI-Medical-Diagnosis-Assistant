@@ -30,10 +30,7 @@ class GradCAMVisualizer:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def create_visualization(
-        self,
-        original_image: Image.Image,
-        heatmap: np.ndarray,
-        alpha: float = 0.5
+        self, original_image: Image.Image, heatmap: np.ndarray, alpha: float = 0.5
     ) -> Tuple[Image.Image, Image.Image, Path]:
         """Applies colormap, overlays it on the original image, and saves results.
 

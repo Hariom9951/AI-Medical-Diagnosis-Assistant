@@ -41,6 +41,7 @@ logger = AppLogger.get_logger(__name__)
 # Configuration
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class ImageClassifierConfig:
     """Typed, immutable configuration for the EfficientNet-B0 classifier."""
@@ -141,6 +142,7 @@ class ImageClassifierConfig:
 # Model Architecture
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class EfficientNetClassifier(nn.Module):
     """EfficientNet-B0 image classifier with a replaceable classification head.
 
@@ -225,6 +227,7 @@ class EfficientNetClassifier(nn.Module):
 # Early Stopping
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class EarlyStopping:
     """Monitors validation loss and signals training to stop if no improvement.
 
@@ -270,6 +273,7 @@ class EarlyStopping:
 # Trainer
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class ImageClassifierTrainer:
     """Orchestrates EfficientNet-B0 training with checkpointing and MLflow logging.
 
@@ -313,7 +317,9 @@ class ImageClassifierTrainer:
             min_delta=self.config.early_stopping_min_delta,
         )
 
-        self.scaler = torch.cuda.amp.GradScaler(enabled=self.config.use_amp and self.device.type == "cuda")
+        self.scaler = torch.cuda.amp.GradScaler(
+            enabled=self.config.use_amp and self.device.type == "cuda"
+        )
 
         # Ensure checkpoint directory exists
         self.config.checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -402,21 +408,25 @@ class ImageClassifierTrainer:
             labels = batch_labels.to(self.device)
 
             self.optimizer.zero_grad()
-            
+
             # Mixed Precision autocast
-            with torch.cuda.amp.autocast(enabled=self.config.use_amp and self.device.type == "cuda"):
+            with torch.cuda.amp.autocast(
+                enabled=self.config.use_amp and self.device.type == "cuda"
+            ):
                 logits = self.model(images)
                 loss = self.criterion(logits, labels)
 
             # Mixed Precision scaling and backward pass
             self.scaler.scale(loss).backward()
-            
+
             # Unscale before clipping
             self.scaler.unscale_(self.optimizer)
-            
+
             # Gradient clipping
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=self.config.max_grad_norm)
-            
+            torch.nn.utils.clip_grad_norm_(
+                self.model.parameters(), max_norm=self.config.max_grad_norm
+            )
+
             # Step and update scaler
             self.scaler.step(self.optimizer)
             self.scaler.update()
@@ -560,7 +570,11 @@ class ImageClassifierTrainer:
             start_epoch = loaded_ckpt["epoch"] + 1
             if "metrics" in loaded_ckpt:
                 best_val_acc = loaded_ckpt["metrics"].get("val_acc", 0.0)
-            logger.info("Resuming image training from epoch %d. Best validation accuracy: %.4f", start_epoch, best_val_acc)
+            logger.info(
+                "Resuming image training from epoch %d. Best validation accuracy: %.4f",
+                start_epoch,
+                best_val_acc,
+            )
 
         # ── MLflow setup ──────────────────────────────────────────────────
         mlflow.set_tracking_uri(self.config.mlflow_tracking_uri)
@@ -570,26 +584,30 @@ class ImageClassifierTrainer:
             logger.info("MLflow run started. Run ID: %s", run.info.run_id)
 
             # Log all hyperparameters once
-            mlflow.log_params({
-                "model_name": self.config.model_name,
-                "num_classes": self.config.num_classes,
-                "freeze_backbone": self.config.freeze_backbone,
-                "optimizer": self.config.optimizer,
-                "learning_rate": self.config.learning_rate,
-                "weight_decay": self.config.weight_decay,
-                "scheduler": self.config.scheduler,
-                "dropout": self.config.dropout,
-                "epochs": epochs,
-                "early_stopping_patience": self.config.early_stopping_patience,
-                "max_grad_norm": self.config.max_grad_norm,
-                "use_amp": self.config.use_amp,
-            })
+            mlflow.log_params(
+                {
+                    "model_name": self.config.model_name,
+                    "num_classes": self.config.num_classes,
+                    "freeze_backbone": self.config.freeze_backbone,
+                    "optimizer": self.config.optimizer,
+                    "learning_rate": self.config.learning_rate,
+                    "weight_decay": self.config.weight_decay,
+                    "scheduler": self.config.scheduler,
+                    "dropout": self.config.dropout,
+                    "epochs": epochs,
+                    "early_stopping_patience": self.config.early_stopping_patience,
+                    "max_grad_norm": self.config.max_grad_norm,
+                    "use_amp": self.config.use_amp,
+                }
+            )
 
             summary = self.model.model_summary()
-            mlflow.log_params({
-                "total_parameters": summary["total_parameters"],
-                "trainable_parameters": summary["trainable_parameters"],
-            })
+            mlflow.log_params(
+                {
+                    "total_parameters": summary["total_parameters"],
+                    "trainable_parameters": summary["trainable_parameters"],
+                }
+            )
 
             # ── Training Loop ─────────────────────────────────────────────
             for epoch in range(start_epoch, epochs):
@@ -620,9 +638,12 @@ class ImageClassifierTrainer:
                 logger.info(
                     "Epoch [%02d/%02d] | Train Loss: %.4f | Train Acc: %.4f | "
                     "Val Loss: %.4f | Val Acc: %.4f | LR: %.6f | Time: %.1fs",
-                    epoch + 1, epochs,
-                    train_loss, train_acc,
-                    val_loss, val_acc,
+                    epoch + 1,
+                    epochs,
+                    train_loss,
+                    train_acc,
+                    val_loss,
+                    val_acc,
                     current_lr,
                     epoch_time,
                 )

@@ -49,6 +49,7 @@ logger = AppLogger.get_logger(__name__)
 # Configuration
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class NLPClassifierConfig:
     """Typed, immutable configuration for the DistilBERT symptom classifier."""
@@ -173,14 +174,13 @@ class NLPClassifierConfig:
 # Text Preprocessing
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class SymptomDataPreprocessor:
     """Production-grade symptom text dataset preprocessor and validator."""
 
     @staticmethod
     def preprocess_df(
-        df: pd.DataFrame,
-        disease_mapping_file: Path,
-        disease_col: str = "Disease"
+        df: pd.DataFrame, disease_mapping_file: Path, disease_col: str = "Disease"
     ) -> Tuple[List[str], List[int], Dict[str, int]]:
         """Cleans and validates the disease symptom dataframe.
 
@@ -205,7 +205,7 @@ class SymptomDataPreprocessor:
         if disease_col not in df.columns:
             raise AppValidationError(
                 f"Missing required label column '{disease_col}' in dataframe.",
-                details={"columns": list(df.columns)}
+                details={"columns": list(df.columns)},
             )
 
         symptom_cols = [c for c in df.columns if c != disease_col]
@@ -227,14 +227,17 @@ class SymptomDataPreprocessor:
                 if not isinstance(disease_to_idx, dict):
                     raise AppValidationError(
                         f"Disease mapping file is invalid. Expected dict, got {type(disease_to_idx)}",
-                        details={"path": str(disease_mapping_file)}
+                        details={"path": str(disease_mapping_file)},
                     )
 
                 missing_classes = [d for d in unique_diseases if d not in disease_to_idx]
                 if missing_classes:
                     raise AppValidationError(
                         f"Symptom dataset contains diseases missing from mapping: {missing_classes}",
-                        details={"missing": missing_classes, "mapping_keys": list(disease_to_idx.keys())}
+                        details={
+                            "missing": missing_classes,
+                            "mapping_keys": list(disease_to_idx.keys()),
+                        },
                     )
             except Exception as e:
                 if isinstance(e, AppValidationError):
@@ -270,12 +273,18 @@ class SymptomDataPreprocessor:
 
                 # Clean: lowercase conversion, normalize whitespace, remove punctuation
                 cleaned = cleaned.lower()
-                cleaned = re.sub(r"[^\w\s_]", "", cleaned)  # remove formatting punctuation except spaces/underscores
+                cleaned = re.sub(
+                    r"[^\w\s_]", "", cleaned
+                )  # remove formatting punctuation except spaces/underscores
                 cleaned = cleaned.replace("_", " ")
                 cleaned = re.sub(r"\s+", " ", cleaned).strip()
 
                 # Remove duplicates
-                if cleaned and cleaned not in ["none", "nan", ""] and cleaned not in patient_symptoms:
+                if (
+                    cleaned
+                    and cleaned not in ["none", "nan", ""]
+                    and cleaned not in patient_symptoms
+                ):
                     patient_symptoms.append(cleaned)
 
             if not patient_symptoms:
@@ -292,6 +301,7 @@ class SymptomDataPreprocessor:
 # PyTorch Dataset
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class NLPTextDataset(Dataset):
     """Custom PyTorch Dataset for clinical symptoms tokenization."""
 
@@ -300,7 +310,7 @@ class NLPTextDataset(Dataset):
         symptom_strings: List[str],
         labels: List[int],
         tokenizer: DistilBertTokenizer,
-        max_length: int = 64
+        max_length: int = 64,
     ) -> None:
         """Initializes the symptoms text dataset.
 
@@ -332,25 +342,22 @@ class NLPTextDataset(Dataset):
                 padding="max_length",
                 truncation=True,
                 max_length=self.max_length,
-                return_tensors="pt"
+                return_tensors="pt",
             )
-            return (
-                encoded["input_ids"].squeeze(0),
-                encoded["attention_mask"].squeeze(0),
-                label
-            )
+            return (encoded["input_ids"].squeeze(0), encoded["attention_mask"].squeeze(0), label)
         except Exception as e:
             logger.error("Tokenization error for text '%s': %s", text, e)
             return (
                 torch.zeros((self.max_length,), dtype=torch.long),
                 torch.zeros((self.max_length,), dtype=torch.long),
-                label
+                label,
             )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Model Architecture
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class SymptomClassifier(nn.Module):
     """DistilBERT text classifier for symptoms.
@@ -371,13 +378,10 @@ class SymptomClassifier(nn.Module):
 
         try:
             config = DistilBertConfig.from_pretrained(
-                model_name,
-                num_labels=num_classes,
-                seq_classif_dropout=dropout
+                model_name, num_labels=num_classes, seq_classif_dropout=dropout
             )
             self.model = DistilBertForSequenceClassification.from_pretrained(
-                model_name,
-                config=config
+                model_name, config=config
             )
         except Exception as e:
             logger.error("Failed to load DistilBert model: %s", e)
@@ -418,6 +422,7 @@ class SymptomClassifier(nn.Module):
 # Early Stopping
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class EarlyStopping:
     """Monitors validation loss and signals training to stop if no improvement."""
 
@@ -436,7 +441,9 @@ class EarlyStopping:
             self.counter = 0
         else:
             self.counter += 1
-            logger.info("EarlyStopping: no improvement for %d/%d epochs.", self.counter, self.patience)
+            logger.info(
+                "EarlyStopping: no improvement for %d/%d epochs.", self.counter, self.patience
+            )
             if self.counter >= self.patience:
                 self.stop = True
                 logger.warning("EarlyStopping limit reached. Triggering halt.")
@@ -446,6 +453,7 @@ class EarlyStopping:
 # Trainer
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class NLPClassifierTrainer:
     """Orchestrates DistilBERT training with early stopping, gradient clipping, and MLflow."""
 
@@ -454,7 +462,7 @@ class NLPClassifierTrainer:
         config_path: Path,
         num_classes: int,
         class_weights: Optional[List[float]] = None,
-        num_training_steps: Optional[int] = None
+        num_training_steps: Optional[int] = None,
     ) -> None:
         """Initializes the NLP trainer.
 
@@ -469,9 +477,7 @@ class NLPClassifierTrainer:
         logger.info("NLP Trainer initialized. Selected Device: %s", self.device)
 
         self.model = SymptomClassifier(
-            model_name=self.config.model_name,
-            num_classes=num_classes,
-            dropout=self.config.dropout
+            model_name=self.config.model_name, num_classes=num_classes, dropout=self.config.dropout
         ).to(self.device)
 
         if class_weights is not None and self.config.use_class_weights:
@@ -482,10 +488,12 @@ class NLPClassifierTrainer:
             self.criterion = nn.CrossEntropyLoss()
 
         self.optimizer: Optimizer = self.build_optimizer()
-        self.scheduler: Optional[LRScheduler | ReduceLROnPlateau] = self.build_scheduler(num_training_steps)
+        self.scheduler: Optional[LRScheduler | ReduceLROnPlateau] = self.build_scheduler(
+            num_training_steps
+        )
         self.early_stopping = EarlyStopping(
             patience=self.config.early_stopping_patience,
-            min_delta=self.config.early_stopping_min_delta
+            min_delta=self.config.early_stopping_min_delta,
         )
 
         self.config.checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -499,58 +507,55 @@ class NLPClassifierTrainer:
             return AdamW(
                 trainable_params,
                 lr=self.config.learning_rate,
-                weight_decay=self.config.weight_decay
+                weight_decay=self.config.weight_decay,
             )
         if opt_name == "adam":
             return Adam(
                 trainable_params,
                 lr=self.config.learning_rate,
-                weight_decay=self.config.weight_decay
+                weight_decay=self.config.weight_decay,
             )
         if opt_name == "sgd":
             return SGD(
                 trainable_params,
                 lr=self.config.learning_rate,
-                weight_decay=self.config.weight_decay
+                weight_decay=self.config.weight_decay,
             )
         raise AppConfigurationError(
             message=f"Unsupported optimizer: '{self.config.optimizer}'. Use adamw | adam | sgd.",
-            details={"optimizer": self.config.optimizer}
+            details={"optimizer": self.config.optimizer},
         )
 
-    def build_scheduler(self, num_training_steps: Optional[int] = None) -> Optional[LRScheduler | ReduceLROnPlateau]:
+    def build_scheduler(
+        self, num_training_steps: Optional[int] = None
+    ) -> Optional[LRScheduler | ReduceLROnPlateau]:
         """Constructs the learning rate scheduler from config."""
         sched_name = self.config.scheduler.lower()
         if sched_name == "linear_warmup":
             if num_training_steps is None:
                 num_training_steps = 100
             warmup_steps = int(num_training_steps * self.config.warmup_ratio)
-            logger.info("Building linear warmup schedule: %d warmup steps, %d total steps.", warmup_steps, num_training_steps)
+            logger.info(
+                "Building linear warmup schedule: %d warmup steps, %d total steps.",
+                warmup_steps,
+                num_training_steps,
+            )
             return get_linear_schedule_with_warmup(
-                self.optimizer,
-                num_warmup_steps=warmup_steps,
-                num_training_steps=num_training_steps
+                self.optimizer, num_warmup_steps=warmup_steps, num_training_steps=num_training_steps
             )
         if sched_name == "cosine":
             return CosineAnnealingLR(self.optimizer, T_max=self.config.t_max)
         if sched_name == "step":
-            return StepLR(
-                self.optimizer,
-                step_size=self.config.step_size,
-                gamma=self.config.gamma
-            )
+            return StepLR(self.optimizer, step_size=self.config.step_size, gamma=self.config.gamma)
         if sched_name == "plateau":
             return ReduceLROnPlateau(
-                self.optimizer,
-                mode="min",
-                patience=3,
-                factor=self.config.gamma
+                self.optimizer, mode="min", patience=3, factor=self.config.gamma
             )
         if sched_name == "none":
             return None
         raise AppConfigurationError(
             message=f"Unsupported scheduler: '{self.config.scheduler}'. Use linear_warmup | cosine | step | plateau | none.",
-            details={"scheduler": self.config.scheduler}
+            details={"scheduler": self.config.scheduler},
         )
 
     def train_one_epoch(self, train_loader: DataLoader) -> Tuple[float, float]:
@@ -626,27 +631,26 @@ class NLPClassifierTrainer:
             logger.info("Saved NLP Checkpoint: %s", path)
         except Exception as e:
             raise AppStorageError(
-                message=f"Failed to save NLP checkpoint: {e}",
-                details={"path": str(path)}
+                message=f"Failed to save NLP checkpoint: {e}", details={"path": str(path)}
             )
 
     def load_checkpoint(self, path: Path) -> Dict[str, Any]:
         """Restores model and optimizer states from a checkpoint file."""
         if not path.exists():
             raise AppStorageError(
-                message=f"NLP checkpoint not found: {path}",
-                details={"path": str(path)}
+                message=f"NLP checkpoint not found: {path}", details={"path": str(path)}
             )
         try:
-            checkpoint: Dict[str, Any] = torch.load(path, map_location=self.device, weights_only=False)
+            checkpoint: Dict[str, Any] = torch.load(
+                path, map_location=self.device, weights_only=False
+            )
             self.model.load_state_dict(checkpoint["model_state_dict"])
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
             logger.info("Loaded NLP checkpoint: %s (epoch %d)", path, checkpoint["epoch"])
             return checkpoint
         except Exception as e:
             raise AppStorageError(
-                message=f"Failed to load NLP checkpoint: {e}",
-                details={"path": str(path)}
+                message=f"Failed to load NLP checkpoint: {e}", details={"path": str(path)}
             )
 
     def _step_scheduler(self, val_loss: float) -> None:
@@ -663,7 +667,7 @@ class NLPClassifierTrainer:
         train_loader: DataLoader,
         val_loader: DataLoader,
         max_epochs: Optional[int] = None,
-        resume_from_checkpoint: Optional[Path] = None
+        resume_from_checkpoint: Optional[Path] = None,
     ) -> List[Dict[str, float]]:
         """Full training loop execution logging to MLflow."""
         epochs = max_epochs if max_epochs is not None else self.config.epochs
@@ -677,7 +681,11 @@ class NLPClassifierTrainer:
             start_epoch = loaded_ckpt["epoch"] + 1
             if "metrics" in loaded_ckpt:
                 best_val_acc = loaded_ckpt["metrics"].get("val_acc", 0.0)
-            logger.info("Resuming training from epoch %d. Best validation accuracy: %.4f", start_epoch, best_val_acc)
+            logger.info(
+                "Resuming training from epoch %d. Best validation accuracy: %.4f",
+                start_epoch,
+                best_val_acc,
+            )
 
         # ── MLflow Tracking Setup ─────────────────────────────────────
         mlflow.set_tracking_uri(self.config.mlflow_tracking_uri)
@@ -689,25 +697,29 @@ class NLPClassifierTrainer:
             logger.info("NLP MLflow run started. ID: %s", run.info.run_id)
 
             # Log Hyperparameters
-            mlflow.log_params({
-                "model_name": self.config.model_name,
-                "dropout": self.config.dropout,
-                "max_length": self.config.max_length,
-                "optimizer": self.config.optimizer,
-                "learning_rate": self.config.learning_rate,
-                "weight_decay": self.config.weight_decay,
-                "scheduler": self.config.scheduler,
-                "epochs": epochs,
-                "early_stopping_patience": self.config.early_stopping_patience,
-                "max_grad_norm": self.config.max_grad_norm
-            })
+            mlflow.log_params(
+                {
+                    "model_name": self.config.model_name,
+                    "dropout": self.config.dropout,
+                    "max_length": self.config.max_length,
+                    "optimizer": self.config.optimizer,
+                    "learning_rate": self.config.learning_rate,
+                    "weight_decay": self.config.weight_decay,
+                    "scheduler": self.config.scheduler,
+                    "epochs": epochs,
+                    "early_stopping_patience": self.config.early_stopping_patience,
+                    "max_grad_norm": self.config.max_grad_norm,
+                }
+            )
 
             summary = self.model.model_summary()
-            mlflow.log_params({
-                "total_parameters": summary["total_parameters"],
-                "trainable_parameters": summary["trainable_parameters"],
-                "num_classes": summary["num_classes"]
-            })
+            mlflow.log_params(
+                {
+                    "total_parameters": summary["total_parameters"],
+                    "trainable_parameters": summary["trainable_parameters"],
+                    "num_classes": summary["num_classes"],
+                }
+            )
 
             best_epoch_index = start_epoch
 
@@ -726,7 +738,7 @@ class NLPClassifierTrainer:
                     "val_loss": round(val_loss, 6),
                     "val_acc": round(val_acc, 6),
                     "learning_rate": round(current_lr, 8),
-                    "epoch_time_s": round(epoch_time, 2)
+                    "epoch_time_s": round(epoch_time, 2),
                 }
                 history.append(metrics)
 
@@ -736,10 +748,14 @@ class NLPClassifierTrainer:
                 logger.info(
                     "Epoch [%02d/%02d] | Train Loss: %.4f | Train Acc: %.4f | "
                     "Val Loss: %.4f | Val Acc: %.4f | LR: %.6f | Time: %.1fs",
-                    epoch + 1, epochs,
-                    train_loss, train_acc,
-                    val_loss, val_acc,
-                    current_lr, epoch_time
+                    epoch + 1,
+                    epochs,
+                    train_loss,
+                    train_acc,
+                    val_loss,
+                    val_acc,
+                    current_lr,
+                    epoch_time,
                 )
 
                 # Save best checkpoint
@@ -747,7 +763,11 @@ class NLPClassifierTrainer:
                     best_val_acc = val_acc
                     best_epoch_index = epoch + 1
                     self.save_checkpoint(epoch, metrics, self.config.best_model_path)
-                    logger.info("New best NLP model saved (val_acc=%.4f): %s", val_acc, self.config.best_model_path)
+                    logger.info(
+                        "New best NLP model saved (val_acc=%.4f): %s",
+                        val_acc,
+                        self.config.best_model_path,
+                    )
 
                 # Period check checkpoint saves
                 epoch_ckpt = self.config.checkpoint_dir / f"checkpoint_epoch_{epoch + 1:03d}.pth"
@@ -769,8 +789,14 @@ class NLPClassifierTrainer:
 
             # Log checkpoints as run artifacts
             if self.config.best_model_path.exists():
-                mlflow.log_artifact(str(self.config.best_model_path), artifact_path="model_checkpoints")
+                mlflow.log_artifact(
+                    str(self.config.best_model_path), artifact_path="model_checkpoints"
+                )
 
-            logger.info("NLP Training Completed. Best Val Acc: %.4f | Run ID: %s", best_val_acc, run.info.run_id)
+            logger.info(
+                "NLP Training Completed. Best Val Acc: %.4f | Run ID: %s",
+                best_val_acc,
+                run.info.run_id,
+            )
 
         return history

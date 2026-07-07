@@ -111,7 +111,7 @@ class DataTransformationConfig:
                 "shuffle_train",
                 "num_workers",
                 "pin_memory",
-                "persistent_workers"
+                "persistent_workers",
             ]
             missing_keys = [k for k in required_keys if k not in config_dict]
             if missing_keys:
@@ -163,7 +163,9 @@ class DataTransformation:
         Args:
             config_path (Path): Path to the YAML configuration file.
         """
-        self.config: Final[DataTransformationConfig] = DataTransformationConfig.from_yaml(config_path)
+        self.config: Final[DataTransformationConfig] = DataTransformationConfig.from_yaml(
+            config_path
+        )
 
         # Create output directories
         self.config.transformed_dir.mkdir(parents=True, exist_ok=True)
@@ -171,25 +173,35 @@ class DataTransformation:
         self.config.disease_mapping_file.parent.mkdir(parents=True, exist_ok=True)
 
         # Build Albumentations transformation pipelines
-        self.train_image_transform = A.Compose([
-            A.Resize(height=self.config.image_size, width=self.config.image_size),
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.2),
-            A.Rotate(limit=15, p=0.5),
-            A.Affine(translate_percent=0.1, scale=(0.9, 1.1), rotate=15, p=0.5),
-            A.RandomBrightnessContrast(p=0.5),
-            A.CLAHE(p=0.2),
-            A.GaussianBlur(p=0.2),
-            A.CoarseDropout(num_holes_range=(1, 8), hole_height_range=(1, 8), hole_width_range=(1, 8), p=0.2),
-            A.Normalize(mean=tuple(self.config.imagenet_mean), std=tuple(self.config.imagenet_std)),
-            ToTensorV2()
-        ])
+        self.train_image_transform = A.Compose(
+            [
+                A.Resize(height=self.config.image_size, width=self.config.image_size),
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.2),
+                A.Rotate(limit=15, p=0.5),
+                A.Affine(translate_percent=0.1, scale=(0.9, 1.1), rotate=15, p=0.5),
+                A.RandomBrightnessContrast(p=0.5),
+                A.CLAHE(p=0.2),
+                A.GaussianBlur(p=0.2),
+                A.CoarseDropout(
+                    num_holes_range=(1, 8), hole_height_range=(1, 8), hole_width_range=(1, 8), p=0.2
+                ),
+                A.Normalize(
+                    mean=tuple(self.config.imagenet_mean), std=tuple(self.config.imagenet_std)
+                ),
+                ToTensorV2(),
+            ]
+        )
 
-        self.val_test_image_transform = A.Compose([
-            A.Resize(height=self.config.image_size, width=self.config.image_size),
-            A.Normalize(mean=tuple(self.config.imagenet_mean), std=tuple(self.config.imagenet_std)),
-            ToTensorV2()
-        ])
+        self.val_test_image_transform = A.Compose(
+            [
+                A.Resize(height=self.config.image_size, width=self.config.image_size),
+                A.Normalize(
+                    mean=tuple(self.config.imagenet_mean), std=tuple(self.config.imagenet_std)
+                ),
+                ToTensorV2(),
+            ]
+        )
 
     def get_image_paths_and_labels(self) -> Tuple[List[Path], List[int], Dict[str, int]]:
         """Scans validated image directories and maps class names to integer labels.
@@ -198,13 +210,19 @@ class DataTransformation:
             Tuple[List[Path], List[int], Dict[str, int]]: Lists of paths, labels, and mapping.
         """
         logger.info("Scanning image directories: %s", self.config.validated_images_dir)
-        
-        class_folders = [p for p in self.config.validated_images_dir.iterdir() if p.is_dir() and p.name != "masks"]
+
+        class_folders = [
+            p
+            for p in self.config.validated_images_dir.iterdir()
+            if p.is_dir() and p.name != "masks"
+        ]
         if not class_folders:
             subdirs = [p for p in self.config.validated_images_dir.glob("**/") if p.is_dir()]
             for d in subdirs:
                 if d.name in ["COVID", "Normal", "Lung_Opacity", "Viral Pneumonia"]:
-                    class_folders = [p for p in d.parent.iterdir() if p.is_dir() and p.name != "masks"]
+                    class_folders = [
+                        p for p in d.parent.iterdir() if p.is_dir() and p.name != "masks"
+                    ]
                     break
 
         class_folders = sorted(class_folders, key=lambda x: x.name)
@@ -219,8 +237,12 @@ class DataTransformation:
             images_subfolder = folder / "images"
             if not images_subfolder.exists():
                 images_subfolder = folder
-            
-            scans = [p for p in images_subfolder.glob("**/*") if p.is_file() and p.suffix.lower() in [".png", ".jpg", ".jpeg"]]
+
+            scans = [
+                p
+                for p in images_subfolder.glob("**/*")
+                if p.is_file() and p.suffix.lower() in [".png", ".jpg", ".jpeg"]
+            ]
             for scan in scans:
                 image_paths.append(scan)
                 labels.append(idx)
@@ -268,18 +290,27 @@ class DataTransformation:
                     continue
                 # Cleaning step: lowercase, remove punctuation, strip spacing
                 cleaned = str(val).strip().lower()
-                cleaned = re.sub(r"[^\w\s_]", "", cleaned)  # remove formatting punctuation except spaces/underscores
+                cleaned = re.sub(
+                    r"[^\w\s_]", "", cleaned
+                )  # remove formatting punctuation except spaces/underscores
                 cleaned = cleaned.replace("_", " ")
                 cleaned = re.sub(r"\s+", " ", cleaned).strip()
-                
-                if cleaned and cleaned not in ["none", "nan", ""] and cleaned not in patient_symptoms:
+
+                if (
+                    cleaned
+                    and cleaned not in ["none", "nan", ""]
+                    and cleaned not in patient_symptoms
+                ):
                     patient_symptoms.append(cleaned)
 
             # Join symptoms with comma separation to provide a clear narrative text representation
             symptom_text = ", ".join(patient_symptoms)
             symptom_strings.append(symptom_text)
 
-        logger.info("Symptom tabular text preparation completed. Cleaned %d patient records.", len(symptom_strings))
+        logger.info(
+            "Symptom tabular text preparation completed. Cleaned %d patient records.",
+            len(symptom_strings),
+        )
         return symptom_strings, labels, disease_to_idx
 
     def split_data(self) -> Dict[str, Any]:
@@ -290,7 +321,7 @@ class DataTransformation:
         """
         # A. Split Images
         img_paths, img_labels, img_mapping = self.get_image_paths_and_labels()
-        
+
         # Stratified Train & Temp splits (Train: 70%, Temp: 30%)
         temp_ratio = self.config.val_split + self.config.test_split
         train_paths, temp_paths, train_img_lbl, temp_img_lbl = train_test_split(
@@ -298,7 +329,7 @@ class DataTransformation:
             img_labels,
             test_size=temp_ratio,
             stratify=img_labels,
-            random_state=self.config.random_state
+            random_state=self.config.random_state,
         )
 
         # Split Temp into Val (15%) and Test (15%)
@@ -308,12 +339,12 @@ class DataTransformation:
             temp_img_lbl,
             test_size=1.0 - val_test_ratio,
             stratify=temp_img_lbl,
-            random_state=self.config.random_state
+            random_state=self.config.random_state,
         )
 
         # B. Split Symptoms Tabular
         symp_texts, symp_labels, symp_mapping = self.preprocess_symptoms_df()
-        
+
         # Stratified Train & Temp splits
         try:
             train_texts, temp_texts, train_symp_lbl, temp_symp_lbl = train_test_split(
@@ -321,15 +352,14 @@ class DataTransformation:
                 symp_labels,
                 test_size=temp_ratio,
                 stratify=symp_labels,
-                random_state=self.config.random_state
+                random_state=self.config.random_state,
             )
         except ValueError:
-            logger.warning("Stratified split failed on symptom CSV due to low class member counts. Falling back to non-stratified split.")
+            logger.warning(
+                "Stratified split failed on symptom CSV due to low class member counts. Falling back to non-stratified split."
+            )
             train_texts, temp_texts, train_symp_lbl, temp_symp_lbl = train_test_split(
-                symp_texts,
-                symp_labels,
-                test_size=temp_ratio,
-                random_state=self.config.random_state
+                symp_texts, symp_labels, test_size=temp_ratio, random_state=self.config.random_state
             )
 
         # Split Temp into Val and Test
@@ -339,32 +369,44 @@ class DataTransformation:
                 temp_symp_lbl,
                 test_size=1.0 - val_test_ratio,
                 stratify=temp_symp_lbl,
-                random_state=self.config.random_state
+                random_state=self.config.random_state,
             )
         except ValueError:
-            logger.warning("Stratified split failed on validation/testing symptoms. Falling back to non-stratified split.")
+            logger.warning(
+                "Stratified split failed on validation/testing symptoms. Falling back to non-stratified split."
+            )
             val_texts, test_texts, val_symp_lbl, test_symp_lbl = train_test_split(
                 temp_texts,
                 temp_symp_lbl,
                 test_size=1.0 - val_test_ratio,
-                random_state=self.config.random_state
+                random_state=self.config.random_state,
             )
 
         logger.info(
             "Stratified splits complete. Image Train/Val/Test: %d/%d/%d | Tabular Train/Val/Test: %d/%d/%d",
-            len(train_paths), len(val_paths), len(test_paths),
-            len(train_texts), len(val_texts), len(test_texts)
+            len(train_paths),
+            len(val_paths),
+            len(test_paths),
+            len(train_texts),
+            len(val_texts),
+            len(test_texts),
         )
 
         return {
-            "train_paths": train_paths, "train_img_lbl": train_img_lbl,
-            "val_paths": val_paths, "val_img_lbl": val_img_lbl,
-            "test_paths": test_paths, "test_img_lbl": test_img_lbl,
-            "train_texts": train_texts, "train_symp_lbl": train_symp_lbl,
-            "val_texts": val_texts, "val_symp_lbl": val_symp_lbl,
-            "test_texts": test_texts, "test_symp_lbl": test_symp_lbl,
+            "train_paths": train_paths,
+            "train_img_lbl": train_img_lbl,
+            "val_paths": val_paths,
+            "val_img_lbl": val_img_lbl,
+            "test_paths": test_paths,
+            "test_img_lbl": test_img_lbl,
+            "train_texts": train_texts,
+            "train_symp_lbl": train_symp_lbl,
+            "val_texts": val_texts,
+            "val_symp_lbl": val_symp_lbl,
+            "test_texts": test_texts,
+            "test_symp_lbl": test_symp_lbl,
             "image_mapping": img_mapping,
-            "symptom_mapping": symp_mapping
+            "symptom_mapping": symp_mapping,
         }
 
     def create_dataloaders(self) -> Dict[str, Any]:
@@ -391,7 +433,9 @@ class DataTransformation:
         try:
             tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
         except Exception as e:
-            logger.warning("DistilBertTokenizer offline load failed. Standard mocks active. Error: %s", e)
+            logger.warning(
+                "DistilBertTokenizer offline load failed. Standard mocks active. Error: %s", e
+            )
             tokenizer = None
 
         train_symp_dataset = SymptomTextDataset(
@@ -411,7 +455,7 @@ class DataTransformation:
             shuffle=self.config.shuffle_train,
             num_workers=self.config.num_workers,
             pin_memory=self.config.pin_memory,
-            persistent_workers=self.config.persistent_workers
+            persistent_workers=self.config.persistent_workers,
         )
         val_img_loader = create_pytorch_dataloader(
             val_img_dataset,
@@ -419,7 +463,7 @@ class DataTransformation:
             shuffle=False,
             num_workers=self.config.num_workers,
             pin_memory=self.config.pin_memory,
-            persistent_workers=self.config.persistent_workers
+            persistent_workers=self.config.persistent_workers,
         )
         test_img_loader = create_pytorch_dataloader(
             test_img_dataset,
@@ -427,7 +471,7 @@ class DataTransformation:
             shuffle=False,
             num_workers=self.config.num_workers,
             pin_memory=self.config.pin_memory,
-            persistent_workers=self.config.persistent_workers
+            persistent_workers=self.config.persistent_workers,
         )
 
         train_symp_loader = create_pytorch_dataloader(
@@ -436,7 +480,7 @@ class DataTransformation:
             shuffle=self.config.shuffle_train,
             num_workers=self.config.num_workers,
             pin_memory=self.config.pin_memory,
-            persistent_workers=self.config.persistent_workers
+            persistent_workers=self.config.persistent_workers,
         )
         val_symp_loader = create_pytorch_dataloader(
             val_symp_dataset,
@@ -444,7 +488,7 @@ class DataTransformation:
             shuffle=False,
             num_workers=self.config.num_workers,
             pin_memory=self.config.pin_memory,
-            persistent_workers=self.config.persistent_workers
+            persistent_workers=self.config.persistent_workers,
         )
         test_symp_loader = create_pytorch_dataloader(
             test_symp_dataset,
@@ -452,7 +496,7 @@ class DataTransformation:
             shuffle=False,
             num_workers=self.config.num_workers,
             pin_memory=self.config.pin_memory,
-            persistent_workers=self.config.persistent_workers
+            persistent_workers=self.config.persistent_workers,
         )
 
         logger.info("Successfully created all 6 PyTorch DataLoaders.")
@@ -464,7 +508,7 @@ class DataTransformation:
             "train_symp_loader": train_symp_loader,
             "val_symp_loader": val_symp_loader,
             "test_symp_loader": test_symp_loader,
-            "splits": splits
+            "splits": splits,
         }
 
     def generate_transformation_report(self, loader_results: Dict[str, Any]) -> None:
@@ -484,7 +528,8 @@ class DataTransformation:
 
         report_path = self.config.reports_dir / "Data_Transformation_Report.md"
         with open(report_path, "w", encoding="utf-8") as f:
-            f.write(f"""# Data Transformation Report
+            f.write(
+                f"""# Data Transformation Report
 
 Presents split allocations, augmentations, and tensor profiles.
 
@@ -526,5 +571,6 @@ Loaded batch shapes with batch size `{self.config.batch_size}`:
 *   **Normalizations Applied:** ImageNet channel means `{self.config.imagenet_mean}` and std deviations `{self.config.imagenet_std}`.
 *   **Disease Category Index Mappings:** Saved at `{self.config.disease_mapping_file}` mapping `{len(splits["symptom_mapping"])}` diagnostic classes.
 *   **Augmentations Active (Train-Only):** HorizontalFlip, VerticalFlip, Rotate, ShiftScaleRotate, RandomBrightnessContrast, CLAHE, GaussianBlur, CoarseDropout.
-""")
+"""
+            )
         logger.info("Saved data transformation report successfully.")

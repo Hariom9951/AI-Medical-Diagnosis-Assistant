@@ -146,7 +146,7 @@ def test_validate_symptoms_success(mock_validation_config_yaml: Path, temp_dir: 
         ["Allergy", "sneezing", "itching", "tearing"],
         ["Allergy", "sneezing", "itching", "tearing"],  # Duplicate
         ["Allergy123", "sneezing", "itching", "tearing"],  # Invalid Label
-        ["GERD", "cough", "", "heartburn"]  # Missing Cell
+        ["GERD", "cough", "", "heartburn"],  # Missing Cell
     ]
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -169,13 +169,12 @@ def test_validate_symptoms_success(mock_validation_config_yaml: Path, temp_dir: 
     assert "Allergy123" not in df_cleaned["Disease"].values
 
 
-def test_validate_symptoms_missing_disease(mock_validation_config_yaml: Path, temp_dir: Path) -> None:
+def test_validate_symptoms_missing_disease(
+    mock_validation_config_yaml: Path, temp_dir: Path
+) -> None:
     """Verifies validation raises AppValidationError if the primary label column is missing."""
     csv_path = temp_dir / "dataset.csv"
-    data = [
-        ["Symptom_1", "Symptom_2"],
-        ["cough", "fever"]
-    ]
+    data = [["Symptom_1", "Symptom_2"], ["cough", "fever"]]
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerows(data)
@@ -198,7 +197,7 @@ def test_generate_reports(mock_validation_config_yaml: Path, temp_dir: Path) -> 
         "deleted_duplicates": 1,
         "incorrect_dimensions_count": 0,
         "missing_masks_count": 2,
-        "class_distribution": {"COVID": 4, "Normal": 4}
+        "class_distribution": {"COVID": 4, "Normal": 4},
     }
 
     csv_results = {
@@ -207,7 +206,7 @@ def test_generate_reports(mock_validation_config_yaml: Path, temp_dir: Path) -> 
         "deleted_duplicates": 4,
         "deleted_invalid_labels": 1,
         "null_cells_count": 10,
-        "missing_per_column": {"Symptom_4": 10}
+        "missing_per_column": {"Symptom_4": 10},
     }
 
     validator.generate_reports(img_results, csv_results)
@@ -222,7 +221,7 @@ def test_generate_reports(mock_validation_config_yaml: Path, temp_dir: Path) -> 
     with open(stats_csv, "r", encoding="utf-8") as f:
         reader = csv.reader(f)
         rows = list(reader)
-    
+
     assert rows[0] == ["Metric", "Value"]
     assert ["initial_scans", "10"] in rows
     assert ["dropped_symptom_duplicates", "4"] in rows

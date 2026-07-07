@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 import matplotlib
+
 matplotlib.use("Agg")  # Non-interactive backend
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -99,40 +100,44 @@ class NLPTrainingPipeline:
         # 1. Load Data
         logger.info("Loading validated symptoms dataset: %s", self.config.validated_symptoms_csv)
         if not self.config.validated_symptoms_csv.exists():
-            raise FileNotFoundError(f"Symptom dataset not found at: {self.config.validated_symptoms_csv}")
-        
+            raise FileNotFoundError(
+                f"Symptom dataset not found at: {self.config.validated_symptoms_csv}"
+            )
+
         df = pd.read_csv(self.config.validated_symptoms_csv)
 
         # 2. Preprocess Data
         logger.info("Cleaning symptoms and loading label mapping...")
         symptom_texts, labels, disease_mapping = SymptomDataPreprocessor.preprocess_df(
-            df=df,
-            disease_mapping_file=self.config.disease_mapping_file
+            df=df, disease_mapping_file=self.config.disease_mapping_file
         )
         num_classes = len(disease_mapping)
-        logger.info("Preprocessed %d records across %d diagnostic classes.", len(symptom_texts), num_classes)
+        logger.info(
+            "Preprocessed %d records across %d diagnostic classes.", len(symptom_texts), num_classes
+        )
 
         # 3. Stratified Data Split
-        logger.info("Splitting dataset (Train: %.2f | Val: %.2f | Test: %.2f)...",
-                    self.config.train_split, self.config.val_split, self.config.test_split)
-        
+        logger.info(
+            "Splitting dataset (Train: %.2f | Val: %.2f | Test: %.2f)...",
+            self.config.train_split,
+            self.config.val_split,
+            self.config.test_split,
+        )
+
         temp_ratio = self.config.val_split + self.config.test_split
-        
+
         try:
             train_texts, temp_texts, train_labels, temp_labels = train_test_split(
                 symptom_texts,
                 labels,
                 test_size=temp_ratio,
                 stratify=labels,
-                random_state=self.config.random_state
+                random_state=self.config.random_state,
             )
         except ValueError:
             logger.warning("Stratified split failed. Falling back to non-stratified split.")
             train_texts, temp_texts, train_labels, temp_labels = train_test_split(
-                symptom_texts,
-                labels,
-                test_size=temp_ratio,
-                random_state=self.config.random_state
+                symptom_texts, labels, test_size=temp_ratio, random_state=self.config.random_state
             )
 
         val_test_ratio = self.config.val_split / temp_ratio
@@ -142,19 +147,25 @@ class NLPTrainingPipeline:
                 temp_labels,
                 test_size=1.0 - val_test_ratio,
                 stratify=temp_labels,
-                random_state=self.config.random_state
+                random_state=self.config.random_state,
             )
         except ValueError:
-            logger.warning("Stratified val/test split failed. Falling back to non-stratified split.")
+            logger.warning(
+                "Stratified val/test split failed. Falling back to non-stratified split."
+            )
             val_texts, test_texts, val_labels, test_labels = train_test_split(
                 temp_texts,
                 temp_labels,
                 test_size=1.0 - val_test_ratio,
-                random_state=self.config.random_state
+                random_state=self.config.random_state,
             )
 
-        logger.info("Split allocation counts - Train: %d, Val: %d, Test: %d",
-                    len(train_texts), len(val_texts), len(test_texts))
+        logger.info(
+            "Split allocation counts - Train: %d, Val: %d, Test: %d",
+            len(train_texts),
+            len(val_texts),
+            len(test_texts),
+        )
 
         # 4. Tokenizer & Dataset Creation
         logger.info("Loading DistilBERT tokenizer: %s", self.config.tokenizer_name)
@@ -171,7 +182,7 @@ class NLPTrainingPipeline:
             shuffle=True,
             num_workers=0,  # Safe on Windows
             pin_memory=True,
-            persistent_workers=False
+            persistent_workers=False,
         )
         val_loader = create_pytorch_dataloader(
             val_dataset,
@@ -179,7 +190,7 @@ class NLPTrainingPipeline:
             shuffle=False,
             num_workers=0,
             pin_memory=True,
-            persistent_workers=False
+            persistent_workers=False,
         )
         test_loader = create_pytorch_dataloader(
             test_dataset,
@@ -187,7 +198,7 @@ class NLPTrainingPipeline:
             shuffle=False,
             num_workers=0,
             pin_memory=True,
-            persistent_workers=False
+            persistent_workers=False,
         )
 
         # 6. Model Training
@@ -196,9 +207,7 @@ class NLPTrainingPipeline:
 
         logger.info("Starting model training loop...")
         history = trainer.train(
-            train_loader=train_loader,
-            val_loader=val_loader,
-            max_epochs=max_epochs
+            train_loader=train_loader, val_loader=val_loader, max_epochs=max_epochs
         )
 
         # 7. Post-Training Artifacts & Metrics Verification
@@ -225,5 +234,5 @@ class NLPTrainingPipeline:
             "best_model_path": str(self.config.best_model_path),
             "tokenizer_path": str(tokenizer_save_dir),
             "curves_path": str(curves_path),
-            "config_snapshot_path": str(config_snapshot_path)
+            "config_snapshot_path": str(config_snapshot_path),
         }

@@ -51,9 +51,7 @@ class ImageInferencePipeline:
                 details={"config_path": str(config_path)},
             )
 
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info("Using device: %s", self.device)
 
         # Build Model Architecture
@@ -64,9 +62,7 @@ class ImageInferencePipeline:
                 dropout=self.config.dropout,
             )
         except Exception as e:
-            raise AppInferenceError(
-                message=f"Failed to build image model architecture: {e}"
-            )
+            raise AppInferenceError(message=f"Failed to build image model architecture: {e}")
 
         # ── Resolve the checkpoint file path ────────────────────────────────
         # Priority:
@@ -122,7 +118,7 @@ class ImageInferencePipeline:
             raw = torch.load(resolved_ckpt, map_location=self.device, weights_only=False)
 
             saved_state = raw["model_state_dict"]
-            model_keys  = set(self.model.state_dict().keys())
+            model_keys = set(self.model.state_dict().keys())
 
             # Detect key prefix mismatch and remap automatically.
             # Training saved weights directly from the backbone (keys: "features.*",
@@ -130,29 +126,27 @@ class ImageInferencePipeline:
             # under self.backbone (keys: "backbone.features.*", "backbone.classifier.*").
             # We remap transparently so neither the checkpoint nor the training
             # code ever needs to change.
-            sample_ckpt_key  = next(iter(saved_state))
+            sample_ckpt_key = next(iter(saved_state))
             sample_model_key = next(iter(model_keys))
-            ckpt_prefix  = sample_ckpt_key.split(".")[0]
+            ckpt_prefix = sample_ckpt_key.split(".")[0]
             model_prefix = sample_model_key.split(".")[0]
 
             if ckpt_prefix != model_prefix:
                 logger.info(
                     "Key prefix mismatch detected — checkpoint prefix: '%s', "
                     "model prefix: '%s'. Remapping keys automatically.",
-                    ckpt_prefix, model_prefix,
+                    ckpt_prefix,
+                    model_prefix,
                 )
-                saved_state = {
-                    f"{model_prefix}.{k}": v
-                    for k, v in saved_state.items()
-                }
+                saved_state = {f"{model_prefix}.{k}": v for k, v in saved_state.items()}
 
             self.model.load_state_dict(saved_state)
 
             # Extract and print metadata
-            epoch    = raw.get("epoch", "N/A")
-            metrics  = raw.get("metrics", {})
+            epoch = raw.get("epoch", "N/A")
+            metrics = raw.get("metrics", {})
             val_loss = metrics.get("val_loss", "N/A")
-            val_acc  = metrics.get("val_acc", "N/A")
+            val_acc = metrics.get("val_acc", "N/A")
 
             print(f"checkpoint filename: {resolved_ckpt.name}")
             print(f"epoch number:        {epoch}")
@@ -162,12 +156,14 @@ class ImageInferencePipeline:
             # Keep metadata available for callers
             self.checkpoint_info = {
                 "checkpoint_path": resolved_ckpt,
-                "epoch":    epoch,
-                "metrics":  metrics,
+                "epoch": epoch,
+                "metrics": metrics,
             }
             logger.info(
                 "Checkpoint loaded — epoch %s | val_loss %s | val_acc %s",
-                epoch, val_loss, val_acc,
+                epoch,
+                val_loss,
+                val_acc,
             )
 
         except AppInferenceError:
@@ -185,6 +181,7 @@ class ImageInferencePipeline:
             trans_config_path = Path("configs/transformation_config.yaml")
             if trans_config_path.exists():
                 import yaml
+
                 with open(trans_config_path, "r", encoding="utf-8") as f:
                     cfg_trans = yaml.safe_load(f) or {}
                 self.image_size = int(cfg_trans.get("image_size", 224))
@@ -203,9 +200,7 @@ class ImageInferencePipeline:
         # Build the exact preprocessing pipeline used in validation/testing
         self.transform = A.Compose(
             [
-                A.Resize(
-                    height=self.image_size, width=self.image_size
-                ),
+                A.Resize(height=self.image_size, width=self.image_size),
                 A.Normalize(
                     mean=tuple(self.imagenet_mean),
                     std=tuple(self.imagenet_std),
@@ -213,11 +208,11 @@ class ImageInferencePipeline:
                 ToTensorV2(),
             ]
         )
-        logger.info("Image preprocessing transforms initialized successfully (size=%d).", self.image_size)
+        logger.info(
+            "Image preprocessing transforms initialized successfully (size=%d).", self.image_size
+        )
 
-    def preprocess(
-        self, image_input: Union[str, Path, Image.Image, np.ndarray]
-    ) -> torch.Tensor:
+    def preprocess(self, image_input: Union[str, Path, Image.Image, np.ndarray]) -> torch.Tensor:
         """Preprocesses the input image according to validation requirements.
 
         Args:
@@ -231,9 +226,7 @@ class ImageInferencePipeline:
             if isinstance(image_input, (str, Path)):
                 img_path = Path(image_input)
                 if not img_path.exists():
-                    raise AppValidationError(
-                        message=f"Input image file does not exist: {img_path}"
-                    )
+                    raise AppValidationError(message=f"Input image file does not exist: {img_path}")
                 with Image.open(img_path) as pil_img:
                     rgb_img = pil_img.convert("RGB")
                     image_np = np.array(rgb_img)
@@ -245,9 +238,7 @@ class ImageInferencePipeline:
                 if len(image_input.shape) == 2:
                     # Grayscale to RGB
                     image_np = np.stack([image_input] * 3, axis=-1)
-                elif (
-                    len(image_input.shape) == 3 and image_input.shape[2] == 4
-                ):
+                elif len(image_input.shape) == 3 and image_input.shape[2] == 4:
                     # RGBA to RGB
                     image_np = image_input[:, :, :3]
                 else:
@@ -267,13 +258,9 @@ class ImageInferencePipeline:
         except Exception as e:
             if isinstance(e, AppValidationError):
                 raise e
-            raise AppValidationError(
-                message=f"Failed to preprocess image input: {e}"
-            )
+            raise AppValidationError(message=f"Failed to preprocess image input: {e}")
 
-    def predict(
-        self, image_input: Union[str, Path, Image.Image, np.ndarray]
-    ) -> Dict[str, Any]:
+    def predict(self, image_input: Union[str, Path, Image.Image, np.ndarray]) -> Dict[str, Any]:
         """Performs disease prediction on a single medical image scan.
 
         Args:
@@ -301,8 +288,7 @@ class ImageInferencePipeline:
             confidence = probabilities[pred_idx].item()
 
             class_probabilities = {
-                self.CLASSES[i]: probabilities[i].item()
-                for i in range(len(self.CLASSES))
+                self.CLASSES[i]: probabilities[i].item() for i in range(len(self.CLASSES))
             }
 
             logger.info(
@@ -320,6 +306,4 @@ class ImageInferencePipeline:
         except Exception as e:
             if isinstance(e, AppValidationError):
                 raise e
-            raise AppInferenceError(
-                message=f"Image inference execution failed: {e}"
-            )
+            raise AppInferenceError(message=f"Image inference execution failed: {e}")

@@ -86,6 +86,7 @@ def test_download_kaggle_dataset_success(
     mock_download: MagicMock, mock_auth: MagicMock, valid_config_yaml: Path, temp_dir: Path
 ) -> None:
     """Verifies successful download writes the mock zip target file."""
+
     # Write empty target file on mock call to simulate successful SDK download
     def download_side_effect(*args: any, **kwargs: any) -> None:
         target = temp_dir / "downloads" / "image-dataset.zip"
@@ -102,10 +103,7 @@ def test_download_kaggle_dataset_success(
     assert zip_path.read_bytes() == b"zipfile_mock_bytes"
     mock_auth.assert_called_once()
     mock_download.assert_called_once_with(
-        dataset="username/image-dataset",
-        path=str(temp_dir / "downloads"),
-        unzip=False,
-        quiet=False
+        dataset="username/image-dataset", path=str(temp_dir / "downloads"), unzip=False, quiet=False
     )
 
 
@@ -129,7 +127,9 @@ def test_download_kaggle_dataset_idempotence(
 
 
 @patch("kaggle.api.kaggle_api_extended.KaggleApi.authenticate")
-def test_download_kaggle_dataset_auth_failure(mock_auth: MagicMock, valid_config_yaml: Path) -> None:
+def test_download_kaggle_dataset_auth_failure(
+    mock_auth: MagicMock, valid_config_yaml: Path
+) -> None:
     """Verifies AppStorageError is raised if Kaggle API authentication fails."""
     mock_auth.side_effect = Exception("Credentials rejected")
 
@@ -144,7 +144,11 @@ def test_download_kaggle_dataset_auth_failure(mock_auth: MagicMock, valid_config
 @patch("kaggle.api.kaggle_api_extended.KaggleApi.dataset_download_files")
 @patch("time.sleep")
 def test_download_kaggle_dataset_retries_and_succeeds(
-    mock_sleep: MagicMock, mock_download: MagicMock, mock_auth: MagicMock, valid_config_yaml: Path, temp_dir: Path
+    mock_sleep: MagicMock,
+    mock_download: MagicMock,
+    mock_auth: MagicMock,
+    valid_config_yaml: Path,
+    temp_dir: Path,
 ) -> None:
     """Verifies download retries on SDK failures and succeeds if a retry passes."""
     call_count = 0
@@ -280,11 +284,11 @@ def test_initiate_data_ingestion(
     """Verifies correct execution flow of initiate_data_ingestion for multiple datasets."""
     mock_download.side_effect = [
         Path("downloads/image-dataset.zip"),
-        Path("downloads/symptom-dataset.zip")
+        Path("downloads/symptom-dataset.zip"),
     ]
     mock_extract.side_effect = [
         Path("raw/covid19-radiography-database"),
-        Path("raw/disease-symptom-description-dataset")
+        Path("raw/disease-symptom-description-dataset"),
     ]
 
     ingestion = DataIngestion(valid_config_yaml)

@@ -17,7 +17,9 @@ logger = AppLogger.get_logger(__name__)
 class GradCAMExplainer:
     """Handles visual attention heatmap computation using Grad-CAM on PyTorch models."""
 
-    def __init__(self, model: torch.nn.Module, target_layers: Optional[List[torch.nn.Module]] = None) -> None:
+    def __init__(
+        self, model: torch.nn.Module, target_layers: Optional[List[torch.nn.Module]] = None
+    ) -> None:
         """Initializes the Grad-CAM explainer.
 
         Args:
@@ -47,20 +49,17 @@ class GradCAMExplainer:
 
         if self.target_layers:
             try:
-                self.cam = GradCAM(
-                    model=self.model,
-                    target_layers=self.target_layers
-                )
+                self.cam = GradCAM(model=self.model, target_layers=self.target_layers)
                 logger.info("Grad-CAM explainer successfully initialized.")
             except Exception as e:
                 logger.error(f"Failed to initialize GradCAM: {e}")
         else:
-            logger.warning("Grad-CAM explainer initialized without target layers (unsupported model).")
+            logger.warning(
+                "Grad-CAM explainer initialized without target layers (unsupported model)."
+            )
 
     def generate_heatmap(
-        self,
-        input_tensor: torch.Tensor,
-        target_class_idx: Optional[int] = None
+        self, input_tensor: torch.Tensor, target_class_idx: Optional[int] = None
     ) -> Optional[np.ndarray]:
         """Generates raw grayscale Grad-CAM heatmap array.
 
@@ -72,7 +71,9 @@ class GradCAMExplainer:
             2D numpy array of shape (H, W) normalized to [0, 1], or None if generation failed.
         """
         if self.cam is None:
-            logger.warning("Grad-CAM generation skipped (explainer not fully initialized/supported).")
+            logger.warning(
+                "Grad-CAM generation skipped (explainer not fully initialized/supported)."
+            )
             return None
 
         # Verify input shape
@@ -99,7 +100,7 @@ class GradCAMExplainer:
             # Generate grayscale activation map
             # input_tensor must match model device and have requires_grad = True
             grayscale_cam = self.cam(input_tensor=input_tensor, targets=targets)
-            
+
             # Extract the 2D map for the batch element
             heatmap = grayscale_cam[0, :]
             return heatmap

@@ -147,4 +147,3 @@ class SymptomPredictionResponse(BaseModel):
     top_predictions: List[TopPrediction]
     preprocessed_text: str
     clinical_explanation: Optional[ClinicalExplanation] = None
-

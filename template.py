@@ -34,7 +34,6 @@ class ProjectTemplateGenerator:
         self.files_to_create: Final[List[Path]] = [
             # Core source package initialization
             self.root / "src" / "__init__.py",
-            
             # Application components (modular pipeline components)
             self.root / "src" / "components" / "__init__.py",
             self.root / "src" / "components" / "data_ingestion.py",
@@ -42,58 +41,46 @@ class ProjectTemplateGenerator:
             self.root / "src" / "components" / "data_transformation.py",
             self.root / "src" / "components" / "model_trainer.py",
             self.root / "src" / "components" / "model_evaluation.py",
-            
             # Orchestration pipelines
             self.root / "src" / "pipeline" / "__init__.py",
             self.root / "src" / "pipeline" / "training_pipeline.py",
             self.root / "src" / "pipeline" / "prediction_pipeline.py",
-            
             # Entities & configuration models
             self.root / "src" / "entity" / "__init__.py",
             self.root / "src" / "entity" / "config_entity.py",
             self.root / "src" / "entity" / "artifact_entity.py",
-            
             # Configuration interfaces
             self.root / "src" / "config" / "__init__.py",
             self.root / "src" / "config" / "configuration.py",
-            
             # Constants and utilities
             self.root / "src" / "constants" / "__init__.py",
             self.root / "src" / "utils" / "__init__.py",
             self.root / "src" / "utils" / "common.py",
-            
             # ML training and evaluation routines
             self.root / "src" / "training" / "__init__.py",
             self.root / "src" / "training" / "train.py",
-            
             # Inference services
             self.root / "src" / "inference" / "__init__.py",
             self.root / "src" / "inference" / "predict.py",
-            
             # API presentation layer (FastAPI)
             self.root / "src" / "api" / "__init__.py",
             self.root / "src" / "api" / "main.py",
             self.root / "src" / "api" / "router.py",
-            
             # UI presentation layer (Streamlit)
             self.root / "src" / "frontend" / "__init__.py",
             self.root / "src" / "frontend" / "app.py",
-            
             # Drift, observability and performance monitoring
             self.root / "src" / "monitoring" / "__init__.py",
             self.root / "src" / "monitoring" / "drift.py",
-            
             # Configurations (YAML, JSON)
             self.root / "configs" / "app_config.yaml",
             self.root / "configs" / "model_config.yaml",
             self.root / "configs" / "training_config.yaml",
             self.root / "configs" / "logging_config.json",
-            
             # Testing suites
             self.root / "tests" / "__init__.py",
             self.root / "tests" / "unit" / "__init__.py",
             self.root / "tests" / "integration" / "__init__.py",
-            
             # Artifacts, logs, models, documentation
             self.root / "artifacts" / ".gitkeep",
             self.root / "logs" / ".gitkeep",
@@ -101,7 +88,6 @@ class ProjectTemplateGenerator:
             self.root / "docs" / ".gitkeep",
             self.root / "scripts" / ".gitkeep",
             self.root / "notebooks" / ".gitkeep",
-            
             # Root orchestration metadata files
             self.root / "requirements.txt",
             self.root / "requirements-dev.txt",
@@ -134,7 +120,9 @@ class ProjectTemplateGenerator:
                     filepath.touch(exist_ok=True)
                     logger.info("Initialized empty file: %s", filepath.relative_to(self.root))
                 else:
-                    logger.debug("Skipping existing non-empty file: %s", filepath.relative_to(self.root))
+                    logger.debug(
+                        "Skipping existing non-empty file: %s", filepath.relative_to(self.root)
+                    )
 
             except (PermissionError, OSError) as e:
                 logger.error("Failed to create file or directory at %s. Error: %s", filepath, e)

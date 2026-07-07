@@ -28,7 +28,7 @@ def test_base_exception_instantiation() -> None:
     assert ex.error_code == ErrorCode.SYSTEM_ERROR
     assert ex.status_code == 503
     assert ex.details == {"disk_space": "1%"}
-    
+
     # Assert string representation formats parameters
     str_ex = str(ex)
     assert "[SYSTEM_ERROR]" in str_ex

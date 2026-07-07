@@ -59,7 +59,9 @@ def mock_transformation_config_yaml(temp_dir: Path) -> Path:
     return config_path
 
 
-def test_transformation_config_load_success(mock_transformation_config_yaml: Path, temp_dir: Path) -> None:
+def test_transformation_config_load_success(
+    mock_transformation_config_yaml: Path, temp_dir: Path
+) -> None:
     """Verifies that DataTransformationConfig loads parameters correctly from YAML."""
     config = DataTransformationConfig.from_yaml(mock_transformation_config_yaml)
     assert config.validated_images_dir == temp_dir / "raw_images"
@@ -94,7 +96,7 @@ def test_symptom_preprocessing(mock_transformation_config_yaml: Path, temp_dir: 
         "Disease": ["Allergy", "GERD"],
         "Symptom_1": [" Sneezing  ", "cough"],
         "Symptom_2": ["itching", "Heartburn!!!"],
-        "Symptom_3": ["sneezing", None]  # duplicate symptom sneezing for patient 1
+        "Symptom_3": ["sneezing", None],  # duplicate symptom sneezing for patient 1
     }
     pd.DataFrame(data).to_csv(csv_path, index=False)
 
@@ -108,7 +110,7 @@ def test_symptom_preprocessing(mock_transformation_config_yaml: Path, temp_dir: 
 
     # Check text formatting (lowercase, stripped punctuation, duplicates removed)
     assert texts[0] == "sneezing, itching"  # duplicates dropped, spaces stripped, lowercase
-    assert texts[1] == "cough, heartburn"   # punctuation stripped
+    assert texts[1] == "cough, heartburn"  # punctuation stripped
 
     # Verify label map JSON written
     mapping_json = temp_dir / "disease_mapping.json"
@@ -126,11 +128,13 @@ def test_medical_image_dataset(temp_dir: Path) -> None:
     img.save(img_path)
 
     # Setup albumentations transformation
-    transform = A.Compose([
-        A.Resize(height=224, width=224),
-        A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
-        ToTensorV2()
-    ])
+    transform = A.Compose(
+        [
+            A.Resize(height=224, width=224),
+            A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+            ToTensorV2(),
+        ]
+    )
 
     dataset = MedicalImageDataset(image_paths=[img_path], labels=[3], transform=transform)
     assert len(dataset) == 1
@@ -153,14 +157,11 @@ def test_symptom_text_dataset() -> None:
     mock_tokenizer = MagicMock()
     mock_tokenizer.return_value = {
         "input_ids": torch.tensor([[101, 102, 103, 0]]),
-        "attention_mask": torch.tensor([[1, 1, 1, 0]])
+        "attention_mask": torch.tensor([[1, 1, 1, 0]]),
     }
 
     dataset = SymptomTextDataset(
-        symptom_strings=symptom_strings,
-        labels=labels,
-        tokenizer=mock_tokenizer,
-        max_length=4
+        symptom_strings=symptom_strings, labels=labels, tokenizer=mock_tokenizer, max_length=4
     )
     assert len(dataset) == 2
 
@@ -174,7 +175,7 @@ def test_symptom_text_dataset() -> None:
         padding="max_length",
         truncation=True,
         max_length=4,
-        return_tensors="pt"
+        return_tensors="pt",
     )
 
 
@@ -202,7 +203,7 @@ def test_create_dataloaders_success(
         "Disease": ["Allergy"] * 10 + ["GERD"] * 10,
         "Symptom_1": ["itching"] * 20,
         "Symptom_2": ["cough"] * 20,
-        "Symptom_3": ["fever"] * 20
+        "Symptom_3": ["fever"] * 20,
     }
     pd.DataFrame(data).to_csv(csv_path, index=False)
 
@@ -210,7 +211,7 @@ def test_create_dataloaders_success(
     mock_tok_inst = MagicMock()
     mock_tok_inst.return_value = {
         "input_ids": torch.ones((1, 64), dtype=torch.long),
-        "attention_mask": torch.ones((1, 64), dtype=torch.long)
+        "attention_mask": torch.ones((1, 64), dtype=torch.long),
     }
     mock_tokenizer_load.return_value = mock_tok_inst
 
@@ -230,7 +231,12 @@ def test_create_dataloaders_success(
 
     # Image loader now returns (tensor, label, path_str) 3-tuple
     img_batch, img_labels, img_paths = next(iter(loaders["train_img_loader"]))
-    assert img_batch.shape == (2, 3, 224, 224)  # batch size is 2, image dimensions targets are 224x224
+    assert img_batch.shape == (
+        2,
+        3,
+        224,
+        224,
+    )  # batch size is 2, image dimensions targets are 224x224
     assert img_labels.shape == (2,)
 
     # Symptom loader now returns (input_ids, attention_mask, label) 3-tuple
@@ -243,7 +249,7 @@ def test_create_dataloaders_success(
     transformer.generate_transformation_report(loaders)
     report_file = temp_dir / "reports" / "Data_Transformation_Report.md"
     assert report_file.exists()
-    
+
     report_content = report_file.read_text()
     assert "Training Images Count:** `14`" in report_content
     assert "Image Batch Tensor Dims:** `[2, 3, 224, 224]`" in report_content

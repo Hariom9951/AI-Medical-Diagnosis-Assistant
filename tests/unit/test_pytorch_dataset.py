@@ -35,17 +35,11 @@ def test_image_dataset_returns_path_and_caching(temp_dir: Path) -> None:
     img.save(img_path)
 
     # Compile Albumentations compose transform
-    transform = A.Compose([
-        A.Resize(height=224, width=224),
-        ToTensorV2()
-    ])
+    transform = A.Compose([A.Resize(height=224, width=224), ToTensorV2()])
 
     # 1. Test dataset with caching active
     dataset = MedicalImageDataset(
-        image_paths=[img_path],
-        labels=[1],
-        transform=transform,
-        cache_active=True
+        image_paths=[img_path], labels=[1], transform=transform, cache_active=True
     )
     assert len(dataset) == 1
     assert dataset.cache == {}
@@ -61,10 +55,7 @@ def test_image_dataset_returns_path_and_caching(temp_dir: Path) -> None:
 
     # 2. Test dataset without caching
     nocache_dataset = MedicalImageDataset(
-        image_paths=[img_path],
-        labels=[2],
-        transform=transform,
-        cache_active=False
+        image_paths=[img_path], labels=[2], transform=transform, cache_active=False
     )
     assert nocache_dataset.cache is None
     _, _, _ = nocache_dataset[0]
@@ -79,14 +70,11 @@ def test_text_dataset_tokenization() -> None:
     mock_tokenizer = MagicMock()
     mock_tokenizer.return_value = {
         "input_ids": torch.tensor([[101, 102, 103, 104]]),
-        "attention_mask": torch.tensor([[1, 1, 1, 0]])
+        "attention_mask": torch.tensor([[1, 1, 1, 0]]),
     }
 
     dataset = SymptomTextDataset(
-        symptom_strings=symptom_strings,
-        labels=labels,
-        tokenizer=mock_tokenizer,
-        max_length=4
+        symptom_strings=symptom_strings, labels=labels, tokenizer=mock_tokenizer, max_length=4
     )
     assert len(dataset) == 1
 
@@ -107,7 +95,7 @@ def test_multimodal_dataset_returns(temp_dir: Path) -> None:
     mock_tokenizer = MagicMock()
     mock_tokenizer.return_value = {
         "input_ids": torch.tensor([[101, 102]]),
-        "attention_mask": torch.tensor([[1, 1]])
+        "attention_mask": torch.tensor([[1, 1]]),
     }
 
     # Initialize Multimodal dataset
@@ -118,7 +106,7 @@ def test_multimodal_dataset_returns(temp_dir: Path) -> None:
         image_transform=A.Compose([A.Resize(height=224, width=224), ToTensorV2()]),
         tokenizer=mock_tokenizer,
         max_length=2,
-        cache_active=True
+        cache_active=True,
     )
     assert len(dataset) == 1
 
@@ -131,10 +119,12 @@ def test_multimodal_dataset_returns(temp_dir: Path) -> None:
 
 def test_dataloader_prefetch_handling() -> None:
     """Verifies prefetch_factor is set to None if num_workers is 0 to avoid PyTorch crashes."""
+
     # Create simple mock dataset
     class DummyDataset(torch.utils.data.Dataset):
         def __len__(self) -> int:
             return 4
+
         def __getitem__(self, idx: int) -> int:
             return idx
 
@@ -148,7 +138,7 @@ def test_dataloader_prefetch_handling() -> None:
         num_workers=0,
         pin_memory=False,
         persistent_workers=True,
-        prefetch_factor=2
+        prefetch_factor=2,
     )
     # Loader parameters must be normalized to prevent runtime exceptions
     assert loader_workers_0.num_workers == 0
@@ -163,7 +153,7 @@ def test_dataloader_prefetch_handling() -> None:
         num_workers=2,
         pin_memory=False,
         persistent_workers=True,
-        prefetch_factor=3
+        prefetch_factor=3,
     )
     assert loader_workers_gt_0.num_workers == 2
     assert loader_workers_gt_0.prefetch_factor == 3

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import matplotlib
+
 matplotlib.use("Agg")  # Use non-interactive backend
 import matplotlib.pyplot as plt
 import mlflow
@@ -54,7 +55,7 @@ class ImageClassifierEvaluator:
         self.config = ImageClassifierConfig.from_yaml(training_config_path)
         self.reports_dir = reports_dir
         self.reports_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self.class_names = class_names or ["COVID", "Lung_Opacity", "Normal", "Viral Pneumonia"]
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info("ImageClassifierEvaluator initialized. Device: %s", self.device)
@@ -93,7 +94,7 @@ class ImageClassifierEvaluator:
                 message=f"Failed to load best model checkpoint: {e}",
                 details={"best_model_path": str(checkpoint_path)},
             )
-        
+
         model.eval()
         return model
 
@@ -133,7 +134,7 @@ class ImageClassifierEvaluator:
             return {}
 
         metrics = self._calculate_metrics(y_true, y_pred, y_prob)
-        
+
         # Save local reports and plots
         self._generate_plots(y_true, y_prob)
         self._write_reports(metrics, y_true, y_pred)
@@ -143,7 +144,9 @@ class ImageClassifierEvaluator:
 
         return metrics
 
-    def _calculate_metrics(self, y_true: np.ndarray, y_pred: np.ndarray, y_prob: np.ndarray) -> Dict[str, Any]:
+    def _calculate_metrics(
+        self, y_true: np.ndarray, y_pred: np.ndarray, y_prob: np.ndarray
+    ) -> Dict[str, Any]:
         """Calculates macro, weighted, and overall accuracy/F1/ROC-AUC metrics.
 
         Args:
@@ -155,11 +158,13 @@ class ImageClassifierEvaluator:
             Dict[str, Any]: Nested dictionary of computed metrics.
         """
         accuracy = float(np.mean(y_true == y_pred))
-        
+
         # One-vs-Rest ROC-AUC calculation
         try:
             macro_roc_auc = float(roc_auc_score(y_true, y_prob, multi_class="ovr", average="macro"))
-            weighted_roc_auc = float(roc_auc_score(y_true, y_prob, multi_class="ovr", average="weighted"))
+            weighted_roc_auc = float(
+                roc_auc_score(y_true, y_prob, multi_class="ovr", average="weighted")
+            )
         except Exception as e:
             logger.warning("Failed to calculate ROC-AUC score: %s", e)
             macro_roc_auc = 0.0
@@ -167,7 +172,7 @@ class ImageClassifierEvaluator:
 
         # Extract per-class precision, recall, f1
         report_dict = classification_report(y_true, y_pred, output_dict=True, zero_division=0)
-        
+
         metrics = {
             "test_accuracy": accuracy,
             "macro_roc_auc": macro_roc_auc,
@@ -178,7 +183,7 @@ class ImageClassifierEvaluator:
             "weighted_f1": report_dict["weighted avg"]["f1-score"],
             "weighted_precision": report_dict["weighted avg"]["precision"],
             "weighted_recall": report_dict["weighted avg"]["recall"],
-            "class_metrics": {}
+            "class_metrics": {},
         }
 
         for idx, name in enumerate(self.class_names):
@@ -188,14 +193,14 @@ class ImageClassifierEvaluator:
                     "precision": report_dict[str_idx]["precision"],
                     "recall": report_dict[str_idx]["recall"],
                     "f1-score": report_dict[str_idx]["f1-score"],
-                    "support": int(report_dict[str_idx]["support"])
+                    "support": int(report_dict[str_idx]["support"]),
                 }
             else:
                 metrics["class_metrics"][name] = {
                     "precision": 0.0,
                     "recall": 0.0,
                     "f1-score": 0.0,
-                    "support": 0
+                    "support": 0,
                 }
 
         return metrics
@@ -212,7 +217,12 @@ class ImageClassifierEvaluator:
         cm_norm = confusion_matrix(y_true, y_prob.argmax(axis=1), normalize="true")
 
         self._plot_confusion_matrix(cm, "confusion_matrix.png", title="Confusion Matrix")
-        self._plot_confusion_matrix(cm_norm, "confusion_matrix_normalized.png", fmt=".2f", title="Normalized Confusion Matrix")
+        self._plot_confusion_matrix(
+            cm_norm,
+            "confusion_matrix_normalized.png",
+            fmt=".2f",
+            title="Normalized Confusion Matrix",
+        )
 
         # 2. ROC Curves (OVR)
         plt.figure(figsize=(8, 6))
@@ -247,7 +257,9 @@ class ImageClassifierEvaluator:
 
         logger.info("Saved evaluation plots to: %s", self.reports_dir)
 
-    def _plot_confusion_matrix(self, cm: np.ndarray, filename: str, fmt: str = "d", title: str = "") -> None:
+    def _plot_confusion_matrix(
+        self, cm: np.ndarray, filename: str, fmt: str = "d", title: str = ""
+    ) -> None:
         """Helper to plot confusion matrix using pure matplotlib.
 
         Args:
@@ -259,7 +271,7 @@ class ImageClassifierEvaluator:
         fig, ax = plt.subplots(figsize=(6, 5))
         im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
         ax.figure.colorbar(im, ax=ax)
-        
+
         ax.set(
             xticks=np.arange(cm.shape[1]),
             yticks=np.arange(cm.shape[0]),
@@ -269,7 +281,7 @@ class ImageClassifierEvaluator:
             ylabel="True label",
             xlabel="Predicted label",
         )
-        
+
         plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
         # Loop over data dimensions and create text annotations
@@ -288,7 +300,9 @@ class ImageClassifierEvaluator:
         plt.savefig(self.reports_dir / filename, dpi=150)
         plt.close()
 
-    def _write_reports(self, metrics: Dict[str, Any], y_true: np.ndarray, y_pred: np.ndarray) -> None:
+    def _write_reports(
+        self, metrics: Dict[str, Any], y_true: np.ndarray, y_pred: np.ndarray
+    ) -> None:
         """Exports metrics.json, classification_report.csv, and model_evaluation_report.md.
 
         Args:
@@ -307,13 +321,23 @@ class ImageClassifierEvaluator:
             writer = csv.writer(f)
             writer.writerow(["Class", "Precision", "Recall", "F1-Score", "Support"])
             for name, m in metrics["class_metrics"].items():
-                writer.writerow([name, f"{m['precision']:.4f}", f"{m['recall']:.4f}", f"{m['f1-score']:.4f}", m["support"]])
+                writer.writerow(
+                    [
+                        name,
+                        f"{m['precision']:.4f}",
+                        f"{m['recall']:.4f}",
+                        f"{m['f1-score']:.4f}",
+                        m["support"],
+                    ]
+                )
 
         # 3. Export Evaluation Report Markdown
         md_path = self.reports_dir / "Evaluation_Report.md"
         with open(md_path, "w", encoding="utf-8") as f:
             f.write("# Model Evaluation Report — Phase 15\n\n")
-            f.write("Presents evaluation metrics, per-class performance matrix tables, and support distributions.\n\n")
+            f.write(
+                "Presents evaluation metrics, per-class performance matrix tables, and support distributions.\n\n"
+            )
             f.write("---\n\n")
             f.write("## 1. Overall Performance Summary\n")
             f.write(f"*   **Total Test Accuracy:** `{metrics['test_accuracy']:.6f}`\n")
@@ -323,10 +347,14 @@ class ImageClassifierEvaluator:
             f.write(f"*   **Weighted F1-Score:** `{metrics['weighted_f1']:.6f}`\n\n")
             f.write("---\n\n")
             f.write("## 2. Per-class Support Table\n\n")
-            f.write("| Diagnostic Disease Class | Precision | Recall | F1-Score | Support Count |\n")
+            f.write(
+                "| Diagnostic Disease Class | Precision | Recall | F1-Score | Support Count |\n"
+            )
             f.write("| :--- | :---: | :---: | :---: | :---: |\n")
             for name, m in metrics["class_metrics"].items():
-                f.write(f"| **{name}** | `{m['precision']:.4f}` | `{m['recall']:.4f}` | `{m['f1-score']:.4f}` | `{m['support']}` |\n")
+                f.write(
+                    f"| **{name}** | `{m['precision']:.4f}` | `{m['recall']:.4f}` | `{m['f1-score']:.4f}` | `{m['support']}` |\n"
+                )
             f.write("\n---\n\n")
             f.write("## 3. Visual Performance Artifacts\n")
             f.write("*   **Confusion Matrix:** Refer to `confusion_matrix.png`\n")
@@ -359,30 +387,40 @@ class ImageClassifierEvaluator:
         Args:
             metrics (Dict[str, Any]): Evaluated metrics dict.
         """
-        mlflow.log_metrics({
-            "test_accuracy": metrics["test_accuracy"],
-            "test_macro_roc_auc": metrics["macro_roc_auc"],
-            "test_weighted_roc_auc": metrics["weighted_roc_auc"],
-            "test_macro_f1": metrics["macro_f1"],
-            "test_weighted_f1": metrics["weighted_f1"],
-        })
+        mlflow.log_metrics(
+            {
+                "test_accuracy": metrics["test_accuracy"],
+                "test_macro_roc_auc": metrics["macro_roc_auc"],
+                "test_weighted_roc_auc": metrics["weighted_roc_auc"],
+                "test_macro_f1": metrics["macro_f1"],
+                "test_weighted_f1": metrics["weighted_f1"],
+            }
+        )
 
         for name, m in metrics["class_metrics"].items():
             prefix = f"test_class_{name.lower().replace(' ', '_')}"
-            mlflow.log_metrics({
-                f"{prefix}_precision": m["precision"],
-                f"{prefix}_recall": m["recall"],
-                f"{prefix}_f1": m["f1-score"],
-            })
+            mlflow.log_metrics(
+                {
+                    f"{prefix}_precision": m["precision"],
+                    f"{prefix}_recall": m["recall"],
+                    f"{prefix}_f1": m["f1-score"],
+                }
+            )
 
         # Log plots and markdown artifacts
         mlflow.log_artifact(str(self.reports_dir / "confusion_matrix.png"), "evaluation_plots")
-        mlflow.log_artifact(str(self.reports_dir / "confusion_matrix_normalized.png"), "evaluation_plots")
+        mlflow.log_artifact(
+            str(self.reports_dir / "confusion_matrix_normalized.png"), "evaluation_plots"
+        )
         mlflow.log_artifact(str(self.reports_dir / "roc_curves.png"), "evaluation_plots")
-        mlflow.log_artifact(str(self.reports_dir / "precision_recall_curves.png"), "evaluation_plots")
+        mlflow.log_artifact(
+            str(self.reports_dir / "precision_recall_curves.png"), "evaluation_plots"
+        )
         mlflow.log_artifact(str(self.reports_dir / "Evaluation_Report.md"), "evaluation_reports")
         mlflow.log_artifact(str(self.reports_dir / "Metrics.json"), "evaluation_reports")
-        mlflow.log_artifact(str(self.reports_dir / "Classification_Report.csv"), "evaluation_reports")
+        mlflow.log_artifact(
+            str(self.reports_dir / "Classification_Report.csv"), "evaluation_reports"
+        )
         logger.info("Successfully logged all evaluation metrics and artifacts to MLflow.")
 
 
@@ -403,10 +441,11 @@ class NLPClassifierEvaluator:
             class_names (Optional[List[str]]): List of diagnostic category names.
         """
         from src.components.nlp_model_trainer import NLPClassifierConfig
+
         self.config = NLPClassifierConfig.from_yaml(nlp_config_path)
         self.reports_dir = reports_dir
         self.reports_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Load class names from mapping JSON
         if class_names is not None:
             self.class_names = class_names
@@ -419,17 +458,18 @@ class NLPClassifierEvaluator:
                 self.class_names = [f"Class_{i}" for i in range(38)]
         else:
             self.class_names = [f"Class_{i}" for i in range(38)]
-            
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info("NLPClassifierEvaluator initialized. Device: %s", self.device)
 
     def load_best_model(self) -> nn.Module:
         """Loads the model and applies the best saved checkpoint weights."""
         from src.components.nlp_model_trainer import SymptomClassifier
+
         model = SymptomClassifier(
             model_name=self.config.model_name,
             num_classes=len(self.class_names),
-            dropout=self.config.dropout
+            dropout=self.config.dropout,
         ).to(self.device)
 
         checkpoint_path = self.config.best_model_path
@@ -451,7 +491,7 @@ class NLPClassifierEvaluator:
                 message=f"Failed to load best NLP model checkpoint: {e}",
                 details={"best_model_path": str(checkpoint_path)},
             )
-        
+
         model.eval()
         return model
 
@@ -485,7 +525,7 @@ class NLPClassifierEvaluator:
             return {}
 
         metrics = self._calculate_metrics(y_true, y_pred, y_prob)
-        
+
         # Save local reports and plots
         self._generate_plots(y_true, y_prob)
         self._write_reports(metrics, y_true, y_pred)
@@ -495,20 +535,24 @@ class NLPClassifierEvaluator:
 
         return metrics
 
-    def _calculate_metrics(self, y_true: np.ndarray, y_pred: np.ndarray, y_prob: np.ndarray) -> Dict[str, Any]:
+    def _calculate_metrics(
+        self, y_true: np.ndarray, y_pred: np.ndarray, y_prob: np.ndarray
+    ) -> Dict[str, Any]:
         """Calculates macro, weighted, and overall accuracy/F1/ROC-AUC metrics."""
         accuracy = float(np.mean(y_true == y_pred))
-        
+
         try:
             macro_roc_auc = float(roc_auc_score(y_true, y_prob, multi_class="ovr", average="macro"))
-            weighted_roc_auc = float(roc_auc_score(y_true, y_prob, multi_class="ovr", average="weighted"))
+            weighted_roc_auc = float(
+                roc_auc_score(y_true, y_prob, multi_class="ovr", average="weighted")
+            )
         except Exception as e:
             logger.warning("Failed to calculate ROC-AUC score for NLP: %s", e)
             macro_roc_auc = 0.0
             weighted_roc_auc = 0.0
 
         report_dict = classification_report(y_true, y_pred, output_dict=True, zero_division=0)
-        
+
         metrics = {
             "test_accuracy": accuracy,
             "macro_roc_auc": macro_roc_auc,
@@ -519,7 +563,7 @@ class NLPClassifierEvaluator:
             "weighted_f1": report_dict["weighted avg"]["f1-score"],
             "weighted_precision": report_dict["weighted avg"]["precision"],
             "weighted_recall": report_dict["weighted avg"]["recall"],
-            "class_metrics": {}
+            "class_metrics": {},
         }
 
         for idx, name in enumerate(self.class_names):
@@ -529,14 +573,14 @@ class NLPClassifierEvaluator:
                     "precision": report_dict[str_idx]["precision"],
                     "recall": report_dict[str_idx]["recall"],
                     "f1-score": report_dict[str_idx]["f1-score"],
-                    "support": int(report_dict[str_idx]["support"])
+                    "support": int(report_dict[str_idx]["support"]),
                 }
             else:
                 metrics["class_metrics"][name] = {
                     "precision": 0.0,
                     "recall": 0.0,
                     "f1-score": 0.0,
-                    "support": 0
+                    "support": 0,
                 }
 
         return metrics
@@ -545,7 +589,7 @@ class NLPClassifierEvaluator:
         """Generates confusion matrix and ROC curves plots for NLP."""
         # Confusion Matrix
         cm = confusion_matrix(y_true, y_prob.argmax(axis=1))
-        
+
         plt.figure(figsize=(10, 8))
         im = plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
         plt.colorbar(im)
@@ -576,7 +620,9 @@ class NLPClassifierEvaluator:
         plt.close()
         logger.info("Saved NLP evaluation plots to: %s", self.reports_dir)
 
-    def _write_reports(self, metrics: Dict[str, Any], y_true: np.ndarray, y_pred: np.ndarray) -> None:
+    def _write_reports(
+        self, metrics: Dict[str, Any], y_true: np.ndarray, y_pred: np.ndarray
+    ) -> None:
         """Exports metrics.json, classification_report.csv, and model_evaluation_report.md for NLP."""
         json_path = self.reports_dir / "NLP_Metrics.json"
         with open(json_path, "w", encoding="utf-8") as f:
@@ -587,7 +633,15 @@ class NLPClassifierEvaluator:
             writer = csv.writer(f)
             writer.writerow(["Class", "Precision", "Recall", "F1-Score", "Support"])
             for name, m in metrics["class_metrics"].items():
-                writer.writerow([name, f"{m['precision']:.4f}", f"{m['recall']:.4f}", f"{m['f1-score']:.4f}", m["support"]])
+                writer.writerow(
+                    [
+                        name,
+                        f"{m['precision']:.4f}",
+                        f"{m['recall']:.4f}",
+                        f"{m['f1-score']:.4f}",
+                        m["support"],
+                    ]
+                )
 
         md_path = self.reports_dir / "NLP_Evaluation_Report.md"
         with open(md_path, "w", encoding="utf-8") as f:
@@ -612,14 +666,20 @@ class NLPClassifierEvaluator:
 
     def _mlflow_log_all(self, metrics: Dict[str, Any]) -> None:
         """Logs evaluation outcomes inside active run context."""
-        mlflow.log_metrics({
-            "nlp_test_accuracy": metrics["test_accuracy"],
-            "nlp_test_macro_roc_auc": metrics["macro_roc_auc"],
-            "nlp_test_macro_f1": metrics["macro_f1"],
-            "nlp_test_weighted_f1": metrics["weighted_f1"],
-        })
+        mlflow.log_metrics(
+            {
+                "nlp_test_accuracy": metrics["test_accuracy"],
+                "nlp_test_macro_roc_auc": metrics["macro_roc_auc"],
+                "nlp_test_macro_f1": metrics["macro_f1"],
+                "nlp_test_weighted_f1": metrics["weighted_f1"],
+            }
+        )
 
-        mlflow.log_artifact(str(self.reports_dir / "nlp_confusion_matrix.png"), "nlp_evaluation_plots")
+        mlflow.log_artifact(
+            str(self.reports_dir / "nlp_confusion_matrix.png"), "nlp_evaluation_plots"
+        )
         mlflow.log_artifact(str(self.reports_dir / "nlp_roc_curves.png"), "nlp_evaluation_plots")
-        mlflow.log_artifact(str(self.reports_dir / "NLP_Evaluation_Report.md"), "nlp_evaluation_reports")
+        mlflow.log_artifact(
+            str(self.reports_dir / "NLP_Evaluation_Report.md"), "nlp_evaluation_reports"
+        )
         mlflow.log_artifact(str(self.reports_dir / "NLP_Metrics.json"), "nlp_evaluation_reports")

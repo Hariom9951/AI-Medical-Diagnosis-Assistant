@@ -33,6 +33,7 @@ from src.utils.exceptions import AppValidationError
 # Fixtures
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def temp_dir(tmp_path: Path) -> Path:
     """Fixture providing a temporary folder directory."""
@@ -92,20 +93,20 @@ mlflow_experiment_name: "test-nlp-experiment"
 # Preprocessing Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def test_symptom_data_preprocessor(temp_dir: Path) -> None:
     """Verifies preprocessor cleans strings, handles NaNs, and sets up mapping."""
     data = {
         "Disease": ["Fungal infection", "Allergy", "Allergy"],
         "Symptom_1": ["itching", " continuous_sneezing", "shivering"],
         "Symptom_2": [" skin_rash", "shivering", None],
-        "Symptom_3": [" nodal_skin_eruptions ", None, None]
+        "Symptom_3": [" nodal_skin_eruptions ", None, None],
     }
     df = pd.DataFrame(data)
     mapping_file = temp_dir / "disease_mapping.json"
 
     symptom_strings, labels, disease_mapping = SymptomDataPreprocessor.preprocess_df(
-        df=df,
-        disease_mapping_file=mapping_file
+        df=df, disease_mapping_file=mapping_file
     )
 
     assert len(symptom_strings) == 3
@@ -134,6 +135,7 @@ def test_symptom_data_preprocessor_invalid_input(temp_dir: Path) -> None:
 # Dataset Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def test_nlp_dataset_tokenization() -> None:
     """Asserts NLPTextDataset returns token ids, attention masks, and integer label."""
     symptom_strings = ["cough, fever"]
@@ -142,14 +144,11 @@ def test_nlp_dataset_tokenization() -> None:
     mock_tokenizer = MagicMock()
     mock_tokenizer.return_value = {
         "input_ids": torch.tensor([[101, 102, 103, 104]]),
-        "attention_mask": torch.tensor([[1, 1, 1, 0]])
+        "attention_mask": torch.tensor([[1, 1, 1, 0]]),
     }
 
     dataset = NLPTextDataset(
-        symptom_strings=symptom_strings,
-        labels=labels,
-        tokenizer=mock_tokenizer,
-        max_length=4
+        symptom_strings=symptom_strings, labels=labels, tokenizer=mock_tokenizer, max_length=4
     )
 
     assert len(dataset) == 1
@@ -163,11 +162,11 @@ def test_nlp_dataset_tokenization() -> None:
 # Model Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @patch("src.components.nlp_model_trainer.DistilBertForSequenceClassification.from_pretrained")
 @patch("src.components.nlp_model_trainer.DistilBertConfig.from_pretrained")
 def test_symptom_classifier_init_and_forward(
-    mock_config_from_pretrained: MagicMock,
-    mock_model_from_pretrained: MagicMock
+    mock_config_from_pretrained: MagicMock, mock_model_from_pretrained: MagicMock
 ) -> None:
     """Tests model instantiation, forward mock output, and summary values."""
     mock_config = MagicMock()
@@ -202,6 +201,7 @@ def test_symptom_classifier_init_and_forward(
 # Early Stopping Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def test_early_stopping_nlp() -> None:
     """Asserts early stopping stops after patience epochs without improvement."""
     es = EarlyStopping(patience=2, min_delta=0.001)
@@ -215,11 +215,9 @@ def test_early_stopping_nlp() -> None:
 # Trainer Factory & Checkpoints Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @patch("src.components.nlp_model_trainer.SymptomClassifier")
-def test_trainer_build_utilities(
-    mock_classifier_class: MagicMock,
-    nlp_config_yaml: Path
-) -> None:
+def test_trainer_build_utilities(mock_classifier_class: MagicMock, nlp_config_yaml: Path) -> None:
     """Verifies optimizer and scheduler instantiation in trainer."""
     mock_model = MagicMock()
     mock_model.to.return_value = mock_model
@@ -236,9 +234,7 @@ def test_trainer_build_utilities(
 
 @patch("src.components.nlp_model_trainer.SymptomClassifier")
 def test_trainer_checkpoint_roundtrip(
-    mock_classifier_class: MagicMock,
-    nlp_config_yaml: Path,
-    temp_dir: Path
+    mock_classifier_class: MagicMock, nlp_config_yaml: Path, temp_dir: Path
 ) -> None:
     """Validates save and load round-trip of checkpoint files."""
     mock_model = MagicMock()

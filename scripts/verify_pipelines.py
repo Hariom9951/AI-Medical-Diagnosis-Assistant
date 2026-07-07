@@ -27,9 +27,7 @@ logger = AppLogger.get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Image test cases - one per class (unseen images from each category)
 # ---------------------------------------------------------------------------
-DATASET_ROOT = Path(
-    "data/raw/covid19-radiography-database/COVID-19_Radiography_Dataset"
-)
+DATASET_ROOT = Path("data/raw/covid19-radiography-database/COVID-19_Radiography_Dataset")
 
 IMAGE_TEST_CASES = [
     {

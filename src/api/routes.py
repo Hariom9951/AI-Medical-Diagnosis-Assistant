@@ -174,7 +174,7 @@ async def predict_image(
     The endpoint uses the pre-loaded EfficientNet-B0 model and optionally
     generates a Grad-CAM attention map for the predicted class.
 
-    **Supported formats:** JPEG, PNG, BMP, TIFF  
+    **Supported formats:** JPEG, PNG, BMP, TIFF
     **Max file size:** 10 MB
     """
     # ── Validate content type ─────────────────────────────────────────────
@@ -183,7 +183,7 @@ async def predict_image(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unsupported file type '{content_type}'. "
-                   f"Allowed: {sorted(ALLOWED_IMAGE_TYPES)}",
+            f"Allowed: {sorted(ALLOWED_IMAGE_TYPES)}",
         )
 
     # ── Read and size-check the file ──────────────────────────────────────
@@ -236,7 +236,9 @@ async def predict_image(
 
     # ── Derive predicted class index for Grad-CAM ─────────────────────────
     predicted_disease: str = result["predicted_disease"]
-    pred_idx = pipeline.CLASSES.index(predicted_disease) if predicted_disease in pipeline.CLASSES else None
+    pred_idx = (
+        pipeline.CLASSES.index(predicted_disease) if predicted_disease in pipeline.CLASSES else None
+    )
 
     # ── Grad-CAM (best-effort, non-blocking) ──────────────────────────────
     gradcam_path: str | None = None
@@ -278,7 +280,7 @@ async def predict_symptoms(body: SymptomRequest) -> SymptomPredictionResponse:
     The endpoint uses the pre-loaded BioBERT symptom classifier trained on
     41 disease classes.
 
-    **Example input:**  
+    **Example input:**
     `"I have fever, cough, sore throat, headache and body pain."`
     """
     try:
@@ -315,13 +317,14 @@ async def predict_symptoms(body: SymptomRequest) -> SymptomPredictionResponse:
     clinical_explanation = None
     if explanation:
         from src.api.schemas import ClinicalExplanation
+
         clinical_explanation = ClinicalExplanation(
             specialist=explanation["specialist"],
             tests=explanation["tests"],
             emergency_signs=explanation["emergency_signs"],
             home_care=explanation["home_care"],
             lifestyle=explanation["lifestyle"],
-            similar_diseases=explanation["similar_diseases"]
+            similar_diseases=explanation["similar_diseases"],
         )
 
     return SymptomPredictionResponse(

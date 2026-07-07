@@ -1,4 +1,5 @@
 ﻿"""Helper script to write inference files from within Python."""
+
 import pathlib
 
 NLP_PREDICT = r'''"""NLP Symptom Classification Inference Pipeline - Production Module.

@@ -48,6 +48,7 @@ from pathlib import Path
 from typing import Any, Dict, Final, List, Optional, Tuple
 
 import matplotlib
+
 matplotlib.use("Agg")  # Non-interactive backend for headless environments
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -73,28 +74,28 @@ _S2D_DATASET_NAME: Final[str] = "symptom2disease"
 # over the generic fuzzy matching in normalise_disease_label().
 _KNOWN_ALIASES: Final[Dict[str, str]] = {
     # Symptom2Disease spelling          : canonical name in disease_mapping_41.json
-    "dimorphic hemorrhoids"             : "Dimorphic hemmorhoids(piles)",
-    "dimorphic haemorrhoids"            : "Dimorphic hemmorhoids(piles)",
-    "dimorphic hemorrhoids(piles)"      : "Dimorphic hemmorhoids(piles)",
-    "gastroesophageal reflux disease"   : "GERD",
-    "gastro-esophageal reflux disease"  : "GERD",
-    "gastro esophageal reflux disease"  : "GERD",
-    "peptic ulcer disease"              : "Peptic ulcer diseae",
-    "peptic ulcer"                      : "Peptic ulcer diseae",
-    "cervical spondylosis"              : "Cervical spondylosis",
-    "chicken pox"                       : "Chicken pox",
-    "urinary tract infection"           : "Urinary tract infection",
-    "varicose veins"                    : "Varicose veins",
-    "hepatitis a"                       : "hepatitis A",
-    "hepatitis b"                       : "Hepatitis B",
-    "hepatitis c"                       : "Hepatitis C",
-    "hepatitis d"                       : "Hepatitis D",
-    "hepatitis e"                       : "Hepatitis E",
-    "heart attack"                      : "Heart attack",
-    "paralysis (brain hemorrhage)"       : "Paralysis (brain hemorrhage)",
-    "paralysis brain hemorrhage"         : "Paralysis (brain hemorrhage)",
-    "(vertigo) paroymsal positional vertigo" : "(vertigo) Paroymsal  Positional Vertigo",
-    "vertigo"                           : "(vertigo) Paroymsal  Positional Vertigo",
+    "dimorphic hemorrhoids": "Dimorphic hemmorhoids(piles)",
+    "dimorphic haemorrhoids": "Dimorphic hemmorhoids(piles)",
+    "dimorphic hemorrhoids(piles)": "Dimorphic hemmorhoids(piles)",
+    "gastroesophageal reflux disease": "GERD",
+    "gastro-esophageal reflux disease": "GERD",
+    "gastro esophageal reflux disease": "GERD",
+    "peptic ulcer disease": "Peptic ulcer diseae",
+    "peptic ulcer": "Peptic ulcer diseae",
+    "cervical spondylosis": "Cervical spondylosis",
+    "chicken pox": "Chicken pox",
+    "urinary tract infection": "Urinary tract infection",
+    "varicose veins": "Varicose veins",
+    "hepatitis a": "hepatitis A",
+    "hepatitis b": "Hepatitis B",
+    "hepatitis c": "Hepatitis C",
+    "hepatitis d": "Hepatitis D",
+    "hepatitis e": "Hepatitis E",
+    "heart attack": "Heart attack",
+    "paralysis (brain hemorrhage)": "Paralysis (brain hemorrhage)",
+    "paralysis brain hemorrhage": "Paralysis (brain hemorrhage)",
+    "(vertigo) paroymsal positional vertigo": "(vertigo) Paroymsal  Positional Vertigo",
+    "vertigo": "(vertigo) Paroymsal  Positional Vertigo",
 }
 
 # File paths relative to the project root (resolved at build time)
@@ -122,6 +123,7 @@ _REPORT_PATH: Final[Path] = _MERGED_DIR / "dataset_statistics_report.md"
 # ─────────────────────────────────────────────────────────────────────────────
 # Data Classes
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class DatasetStats:
@@ -181,6 +183,7 @@ class MergedDatasetStats:
 # Text Preprocessing Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def clean_symptom_token(raw_token: str) -> str:
     """Normalises a single symptom token extracted from a wide-format CSV cell.
 
@@ -194,7 +197,7 @@ def clean_symptom_token(raw_token: str) -> str:
         str: Cleaned, human-readable symptom phrase (e.g. "nodal skin eruptions").
     """
     token = raw_token.strip().lower()
-    token = re.sub(r"[^\w\s_]", "", token)   # remove special chars except _ and space
+    token = re.sub(r"[^\w\s_]", "", token)  # remove special chars except _ and space
     token = token.replace("_", " ")
     token = re.sub(r"\s+", " ", token).strip()
     return token
@@ -236,6 +239,7 @@ def tokens_to_clinical_sentence(tokens: List[str]) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 # Label Normalisation Helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def build_label_normaliser(mapping: Dict[str, int]) -> Dict[str, str]:
     """Builds a lowercase-key → canonical-name lookup for fuzzy label matching.
@@ -289,6 +293,7 @@ def normalise_disease_label(
 # ─────────────────────────────────────────────────────────────────────────────
 # Kaggle Download Helper
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def download_symptom2disease(
     download_dir: Path,
@@ -360,7 +365,8 @@ def download_symptom2disease(
         try:
             logger.info(
                 "Downloading Symptom2Disease from Kaggle (attempt %d/%d)...",
-                attempt, max_retries,
+                attempt,
+                max_retries,
             )
             kaggle.api.dataset_download_files(
                 dataset=_S2D_KAGGLE_SLUG,
@@ -369,9 +375,7 @@ def download_symptom2disease(
                 unzip=False,
             )
             if not zip_path.exists():
-                raise FileNotFoundError(
-                    f"Expected archive not found after download: {zip_path}"
-                )
+                raise FileNotFoundError(f"Expected archive not found after download: {zip_path}")
             logger.info("Download completed: %s", zip_path.name)
             break
         except Exception as exc:
@@ -383,7 +387,7 @@ def download_symptom2disease(
                 except OSError:
                     pass
             if attempt < max_retries:
-                sleep_time = backoff_factor ** attempt
+                sleep_time = backoff_factor**attempt
                 logger.info("Retrying in %.1fs...", sleep_time)
                 time.sleep(sleep_time)
     else:
@@ -404,9 +408,7 @@ def download_symptom2disease(
                 abs_root = Path(os.path.abspath(raw_output_dir))
                 if not abs_target.is_relative_to(abs_root):
                     raise AppValidationError(
-                        message=(
-                            f"Zip Slip traversal detected in member: {member.filename}"
-                        ),
+                        message=(f"Zip Slip traversal detected in member: {member.filename}"),
                         details={"member": member.filename},
                     )
             zf.extractall(raw_output_dir)
@@ -433,6 +435,7 @@ def download_symptom2disease(
 # Dataset Loading and Validation Functions
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def load_disease_mapping(mapping_path: Path) -> Dict[str, int]:
     """Loads the canonical 41-label disease mapping from JSON.
 
@@ -455,7 +458,8 @@ def load_disease_mapping(mapping_path: Path) -> Dict[str, int]:
             mapping: Dict[str, int] = json.load(f)
         logger.info(
             "Loaded %d canonical disease labels from %s",
-            len(mapping), mapping_path.name,
+            len(mapping),
+            mapping_path.name,
         )
         return mapping
     except Exception as e:
@@ -506,9 +510,7 @@ def load_and_validate_dataset1(
     stats.total_rows = len(df)
 
     # ── Column validation ─────────────────────────────────────────────────
-    disease_col = next(
-        (c for c in df.columns if c.strip().lower() == "disease"), None
-    )
+    disease_col = next((c for c in df.columns if c.strip().lower() == "disease"), None)
     if disease_col is None:
         raise AppValidationError(
             message="Dataset 1 CSV is missing the 'Disease' column.",
@@ -534,7 +536,8 @@ def load_and_validate_dataset1(
     if unmatched_labels:
         logger.warning(
             "Dataset 1 contains %d disease names not found in canonical mapping: %s",
-            len(unmatched_labels), unmatched_labels,
+            len(unmatched_labels),
+            unmatched_labels,
         )
     else:
         logger.info("Dataset 1 — all disease labels are consistent with canonical mapping.")
@@ -567,7 +570,10 @@ def load_and_validate_dataset1(
 
     logger.info(
         "Dataset 1 validation complete — %d rows, %d diseases, %d duplicates, %d missing cells.",
-        stats.total_rows, stats.num_diseases, stats.num_duplicate_rows, stats.num_missing_cells,
+        stats.total_rows,
+        stats.num_diseases,
+        stats.num_duplicate_rows,
+        stats.num_missing_cells,
     )
     return df, stats
 
@@ -617,9 +623,7 @@ def load_and_validate_dataset2(
     stats.total_rows = len(df)
 
     # ── Column auto-detection ─────────────────────────────────────────────
-    label_col = next(
-        (c for c in df.columns if c.strip().lower() in ("label", "disease")), None
-    )
+    label_col = next((c for c in df.columns if c.strip().lower() in ("label", "disease")), None)
     text_col = next(
         (c for c in df.columns if c.strip().lower() in ("text", "description", "symptom")), None
     )
@@ -633,9 +637,7 @@ def load_and_validate_dataset2(
             message="Could not find a text/description column in Symptom2Disease CSV.",
             details={"columns_found": list(df.columns)},
         )
-    logger.info(
-        "Dataset 2 column mapping — label: '%s', text: '%s'", label_col, text_col
-    )
+    logger.info("Dataset 2 column mapping — label: '%s', text: '%s'", label_col, text_col)
 
     # ── Missing value analysis ─────────────────────────────────────────────
     stats.num_missing_cells = int(df[[label_col, text_col]].isnull().sum().sum())
@@ -661,7 +663,8 @@ def load_and_validate_dataset2(
         logger.warning(
             "Dataset 2 — %d disease names could not be matched to canonical labels "
             "(rows will be dropped during preprocessing): %s",
-            len(unmatched_labels), list(unmatched_labels.keys()),
+            len(unmatched_labels),
+            list(unmatched_labels.keys()),
         )
         stats.drop_reasons = unmatched_labels
         stats.dropped_rows = sum(unmatched_labels.values())
@@ -686,8 +689,11 @@ def load_and_validate_dataset2(
     logger.info(
         "Dataset 2 validation complete — %d rows, %d diseases, %d duplicates, "
         "%d missing cells, %d rows to drop.",
-        stats.total_rows, stats.num_diseases, stats.num_duplicate_rows,
-        stats.num_missing_cells, stats.dropped_rows,
+        stats.total_rows,
+        stats.num_diseases,
+        stats.num_duplicate_rows,
+        stats.num_missing_cells,
+        stats.dropped_rows,
     )
     return df, stats
 
@@ -695,6 +701,7 @@ def load_and_validate_dataset2(
 # ─────────────────────────────────────────────────────────────────────────────
 # Preprocessing Pipeline Functions
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def preprocess_dataset1(
     df: pd.DataFrame,
@@ -719,9 +726,7 @@ def preprocess_dataset1(
     logger.info("Preprocessing Dataset 1: converting keyword rows to clinical sentences...")
     normaliser = build_label_normaliser(disease_mapping)
 
-    disease_col = next(
-        (c for c in df.columns if c.strip().lower() == "disease"), "Disease"
-    )
+    disease_col = next((c for c in df.columns if c.strip().lower() == "disease"), "Disease")
     symptom_cols = [c for c in df.columns if c.strip().lower() != "disease"]
 
     records: List[Dict[str, Any]] = []
@@ -751,17 +756,20 @@ def preprocess_dataset1(
                 seen.add(cleaned)
 
         sentence = tokens_to_clinical_sentence(tokens)
-        records.append({
-            "text": sentence,
-            "label": label,
-            "disease": canonical,
-            "source": "dataset1",
-        })
+        records.append(
+            {
+                "text": sentence,
+                "label": label,
+                "disease": canonical,
+                "source": "dataset1",
+            }
+        )
 
     result = pd.DataFrame(records)
     logger.info(
         "Dataset 1 preprocessing complete — %d rows produced from %d input rows.",
-        len(result), len(df),
+        len(result),
+        len(df),
     )
     return result
 
@@ -786,9 +794,7 @@ def preprocess_dataset2(
     logger.info("Preprocessing Dataset 2: normalising disease labels...")
     normaliser = build_label_normaliser(disease_mapping)
 
-    label_col = next(
-        (c for c in df.columns if c.strip().lower() in ("label", "disease")), None
-    )
+    label_col = next((c for c in df.columns if c.strip().lower() in ("label", "disease")), None)
     text_col = next(
         (c for c in df.columns if c.strip().lower() in ("text", "description", "symptom")), None
     )
@@ -812,23 +818,27 @@ def preprocess_dataset2(
             continue
 
         label = disease_mapping[canonical]
-        records.append({
-            "text": text,
-            "label": label,
-            "disease": canonical,
-            "source": "symptom2disease",
-        })
+        records.append(
+            {
+                "text": text,
+                "label": label,
+                "disease": canonical,
+                "source": "symptom2disease",
+            }
+        )
 
     if drop_names:
         logger.warning(
             "Dataset 2 preprocessing — dropped %d rows for unmatched labels: %s",
-            dropped, drop_names,
+            dropped,
+            drop_names,
         )
 
     result = pd.DataFrame(records)
     logger.info(
         "Dataset 2 preprocessing complete — %d rows retained, %d dropped.",
-        len(result), dropped,
+        len(result),
+        dropped,
     )
     return result
 
@@ -884,8 +894,10 @@ def merge_datasets(
     logger.info(
         "Merge complete — %d total rows | %d diseases | "
         "%d in both sources | %d only in Dataset 1",
-        stats.total_rows, stats.num_diseases,
-        len(stats.diseases_in_both), len(stats.diseases_only_in_ds1),
+        stats.total_rows,
+        stats.num_diseases,
+        len(stats.diseases_in_both),
+        len(stats.diseases_only_in_ds1),
     )
     return merged, stats
 
@@ -893,6 +905,7 @@ def merge_datasets(
 # ─────────────────────────────────────────────────────────────────────────────
 # Plotting Functions
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def plot_class_distribution(
     merged_df: pd.DataFrame,
@@ -910,10 +923,14 @@ def plot_class_distribution(
         merged_df.groupby(["disease", "source"])
         .size()
         .unstack(fill_value=0)
-        .sort_values(by=merged_df["disease"].value_counts().index.tolist()[0]
-                     if "dataset1" not in merged_df.get("source", pd.Series()).unique()
-                     else "dataset1",
-                     ascending=False)
+        .sort_values(
+            by=(
+                merged_df["disease"].value_counts().index.tolist()[0]
+                if "dataset1" not in merged_df.get("source", pd.Series()).unique()
+                else "dataset1"
+            ),
+            ascending=False,
+        )
     )
     # Sort by total count descending
     pivot = pivot.loc[pivot.sum(axis=1).sort_values(ascending=False).index]
@@ -939,7 +956,12 @@ def plot_class_distribution(
     ax.set_xticklabels(pivot.index, rotation=55, ha="right", fontsize=8)
     ax.set_xlabel("Disease", fontsize=11)
     ax.set_ylabel("Sample Count", fontsize=11)
-    ax.set_title("BioBERT Merged Dataset — Per-Class Sample Distribution", fontsize=13, fontweight="bold", pad=14)
+    ax.set_title(
+        "BioBERT Merged Dataset — Per-Class Sample Distribution",
+        fontsize=13,
+        fontweight="bold",
+        pad=14,
+    )
     ax.legend(title="Source", fontsize=10)
     ax.grid(axis="y", linestyle="--", alpha=0.4)
     plt.tight_layout()
@@ -962,9 +984,7 @@ def plot_text_length_distribution(
     plots_dir.mkdir(parents=True, exist_ok=True)
 
     merged_df = merged_df.copy()
-    merged_df["word_count"] = merged_df["text"].astype(str).apply(
-        lambda t: len(t.split())
-    )
+    merged_df["word_count"] = merged_df["text"].astype(str).apply(lambda t: len(t.split()))
 
     fig, ax = plt.subplots(figsize=(10, 5))
     colors = {"dataset1": "#4e79a7", "symptom2disease": "#f28e2b"}
@@ -1010,7 +1030,7 @@ def plot_source_split(merged_df: pd.DataFrame, plots_dir: Path) -> None:
         source_counts.values,
         labels=labels,
         autopct="%1.1f%%",
-        colors=colors_list[:len(source_counts)],
+        colors=colors_list[: len(source_counts)],
         startangle=90,
         wedgeprops={"edgecolor": "white", "linewidth": 1.5},
     )
@@ -1027,6 +1047,7 @@ def plot_source_split(merged_df: pd.DataFrame, plots_dir: Path) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 # Report Generator
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def generate_statistics_report(
     stats_ds1: DatasetStats,
@@ -1063,23 +1084,25 @@ def generate_statistics_report(
     distribution_table = "\n".join(distribution_rows)
 
     # ── Build drop reason tables ───────────────────────────────────────────
-    ds2_drop_table = "\n".join(
-        f"| {name} | {count} |"
-        for name, count in sorted(stats_ds2.drop_reasons.items(), key=lambda x: -x[1])
-    ) or "| — | 0 |"
+    ds2_drop_table = (
+        "\n".join(
+            f"| {name} | {count} |"
+            for name, count in sorted(stats_ds2.drop_reasons.items(), key=lambda x: -x[1])
+        )
+        or "| — | 0 |"
+    )
 
     # ── Diseases covered only by DS1 ──────────────────────────────────────
-    ds1_only_list = "\n".join(
-        f"- {d}" for d in merged_stats.diseases_only_in_ds1
-    ) or "*(none — full overlap)*"
+    ds1_only_list = (
+        "\n".join(f"- {d}" for d in merged_stats.diseases_only_in_ds1) or "*(none — full overlap)*"
+    )
 
-    ds_both_list = "\n".join(
-        f"- {d}" for d in merged_stats.diseases_in_both
-    ) or "*(none)*"
+    ds_both_list = "\n".join(f"- {d}" for d in merged_stats.diseases_in_both) or "*(none)*"
 
     try:
         with open(output_path, "w", encoding="utf-8") as f:
-            f.write(f"""# BioBERT Dataset Statistics Report
+            f.write(
+                f"""# BioBERT Dataset Statistics Report
 
 *Generated: {timestamp}*
 
@@ -1202,7 +1225,8 @@ Natural-language clinical sentence:
 ---
 
 *Next step: BioBERT fine-tuning using `configs/biobert_training_config.yaml`.*
-""")
+"""
+            )
     except Exception as e:
         raise AppStorageError(
             message=f"Failed to write dataset statistics report: {e}",
@@ -1215,6 +1239,7 @@ Natural-language clinical sentence:
 # ─────────────────────────────────────────────────────────────────────────────
 # Main Orchestrator Class
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class BioBERTDatasetBuilder:
     """Orchestrates the complete BioBERT dataset preparation pipeline.
@@ -1473,9 +1498,7 @@ class BioBERTDatasetBuilder:
         )
 
         # Step 3: Preprocess (non-destructive)
-        df1_processed, df2_processed = self.step3_preprocess(
-            df1_raw, df2_raw, disease_mapping
-        )
+        df1_processed, df2_processed = self.step3_preprocess(df1_raw, df2_raw, disease_mapping)
 
         # Step 4: Merge and save
         merged_df, merged_stats = self.step4_merge_and_save(
@@ -1516,6 +1539,7 @@ class BioBERTDatasetBuilder:
 # ─────────────────────────────────────────────────────────────────────────────
 # CLI Entrypoint
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def main() -> None:
     """CLI entrypoint for the BioBERT dataset builder."""

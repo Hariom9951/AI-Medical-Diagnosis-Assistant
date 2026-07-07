@@ -79,7 +79,7 @@ class DataIngestionConfig:
                 "download_dir",
                 "extract_dir",
                 "processed_dir",
-                "interim_dir"
+                "interim_dir",
             ]
             missing_keys = [k for k in required_keys if k not in config_dict]
             if missing_keys:
@@ -147,7 +147,9 @@ class DataIngestion:
 
         # Idempotency Check: If file already exists, skip downloading
         if target_zip.exists():
-            logger.info("Archive %s already exists in downloads. Skipping download.", target_zip.name)
+            logger.info(
+                "Archive %s already exists in downloads. Skipping download.", target_zip.name
+            )
             return target_zip
 
         # Perform authentication first
@@ -164,17 +166,19 @@ class DataIngestion:
         for attempt in range(1, self.config.max_retries + 1):
             try:
                 logger.info("Download attempt %d/%d...", attempt, self.config.max_retries)
-                
+
                 # Fetch dataset files using Kaggle API client
                 kaggle.api.dataset_download_files(
                     dataset=dataset_slug,
                     path=str(self.config.download_dir),
                     unzip=False,
-                    quiet=False
+                    quiet=False,
                 )
-                
+
                 if not target_zip.exists():
-                    raise FileNotFoundError(f"Expected archive download target file {target_zip} not found.")
+                    raise FileNotFoundError(
+                        f"Expected archive download target file {target_zip} not found."
+                    )
 
                 logger.info("Kaggle download completed successfully: %s", target_zip.name)
                 break
@@ -187,7 +191,7 @@ class DataIngestion:
                         target_zip.unlink()
                     except OSError:
                         pass
-                
+
                 if attempt < self.config.max_retries:
                     sleep_time = self.config.backoff_factor**attempt
                     logger.info("Sleeping for %.1f seconds before retrying...", sleep_time)
@@ -233,7 +237,8 @@ class DataIngestion:
                         abs_extract_dir = Path(os.path.abspath(target_dir))
                         if not abs_target_path.is_relative_to(abs_extract_dir):
                             raise AppValidationError(
-                                message="Malicious zip member detected with directory traversal: " + zip_member.filename
+                                message="Malicious zip member detected with directory traversal: "
+                                + zip_member.filename
                             )
                     zip_ref.extractall(target_dir)
 
@@ -245,7 +250,8 @@ class DataIngestion:
                         abs_extract_dir = Path(os.path.abspath(target_dir))
                         if not abs_target_path.is_relative_to(abs_extract_dir):
                             raise AppValidationError(
-                                message="Malicious tar member detected with directory traversal: " + tar_member.name
+                                message="Malicious tar member detected with directory traversal: "
+                                + tar_member.name
                             )
                     tar_ref.extractall(target_dir)
             else:
@@ -258,7 +264,9 @@ class DataIngestion:
             return target_dir
 
         except AppValidationError as e:
-            logger.error("Validation failed during extraction. Initiating pipeline cleanup. Error: %s", e)
+            logger.error(
+                "Validation failed during extraction. Initiating pipeline cleanup. Error: %s", e
+            )
             if target_dir.exists():
                 shutil.rmtree(target_dir)
             raise e
@@ -285,13 +293,12 @@ class DataIngestion:
 
             # 2. Download and extract the symptoms dataset
             symptom_archive = self.download_kaggle_dataset(self.config.symptom_dataset_slug)
-            symptom_extracted = self.extract_file(symptom_archive, "disease-symptom-description-dataset")
+            symptom_extracted = self.extract_file(
+                symptom_archive, "disease-symptom-description-dataset"
+            )
 
             logger.info("--- Kaggle Data Ingestion Sequence Successfully Finished ---")
-            return {
-                "image_raw_dir": img_extracted,
-                "symptom_raw_dir": symptom_extracted
-            }
+            return {"image_raw_dir": img_extracted, "symptom_raw_dir": symptom_extracted}
         except Exception as e:
             logger.error("--- Kaggle Data Ingestion Sequence Failed ---")
             raise e

@@ -19,6 +19,7 @@ from src.utils.exceptions import AppStorageError
 # Toy Dataset for Testing
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class DummyEvalDataset(Dataset):
     """Simple toy dataset that yields deterministic tensors for evaluation testing."""
 
@@ -40,12 +41,13 @@ class DummyEvalDataset(Dataset):
 # Fixtures
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def config_yaml(tmp_path: Path) -> Path:
     """Creates a minimal valid training_config.yaml for testing."""
     checkpoint_dir = tmp_path / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    
+
     cfg_content = f"""
 model_name: "efficientnet_b0"
 num_classes: 4
@@ -77,13 +79,14 @@ mlflow_experiment_name: "test-evaluation-experiment"
 # Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def test_evaluator_init(config_yaml: Path, tmp_path: Path) -> None:
     """Verifies that ImageClassifierEvaluator initializes correctly."""
     reports_dir = tmp_path / "reports"
     evaluator = ImageClassifierEvaluator(
         training_config_path=config_yaml,
         reports_dir=reports_dir,
-        class_names=["ClassA", "ClassB", "ClassC", "ClassD"]
+        class_names=["ClassA", "ClassB", "ClassC", "ClassD"],
     )
     assert evaluator.config.num_classes == 4
     assert evaluator.reports_dir == reports_dir
@@ -94,7 +97,7 @@ def test_evaluator_missing_checkpoint_raises_error(config_yaml: Path, tmp_path: 
     """Asserts that AppStorageError is raised if the best model checkpoint file does not exist."""
     reports_dir = tmp_path / "reports"
     evaluator = ImageClassifierEvaluator(training_config_path=config_yaml, reports_dir=reports_dir)
-    
+
     # Checkpoint doesn't exist, so loading should raise AppStorageError
     with pytest.raises(AppStorageError) as exc_info:
         evaluator.load_best_model()
@@ -104,10 +107,7 @@ def test_evaluator_missing_checkpoint_raises_error(config_yaml: Path, tmp_path: 
 @patch("src.components.model_evaluation.EfficientNetClassifier")
 @patch("src.components.model_evaluation.torch.load")
 def test_evaluator_load_best_model_success(
-    mock_torch_load: MagicMock,
-    mock_classifier: MagicMock,
-    config_yaml: Path,
-    tmp_path: Path
+    mock_torch_load: MagicMock, mock_classifier: MagicMock, config_yaml: Path, tmp_path: Path
 ) -> None:
     """Verifies evaluator loads model weights successfully from checkpoint file."""
     # Write a dummy checkpoint file so the check path.exists() succeeds
@@ -122,10 +122,12 @@ def test_evaluator_load_best_model_success(
     reports_dir = tmp_path / "reports"
     evaluator = ImageClassifierEvaluator(training_config_path=config_yaml, reports_dir=reports_dir)
     model = evaluator.load_best_model()
-    
+
     # Assert
     assert model == mock_model
-    mock_torch_load.assert_called_once_with(best_path, map_location=evaluator.device, weights_only=False)
+    mock_torch_load.assert_called_once_with(
+        best_path, map_location=evaluator.device, weights_only=False
+    )
     mock_model.load_state_dict.assert_called_once_with({"dummy": 1})
     mock_model.eval.assert_called_once()
 
@@ -135,7 +137,7 @@ def test_calculate_metrics() -> None:
     # Setup dummy arrays: 8 samples, 4 classes
     y_true = np.array([0, 1, 2, 3, 0, 1, 2, 3])
     y_pred = np.array([0, 1, 2, 3, 0, 1, 2, 0])  # last prediction is wrong
-    
+
     # Probabilities: 8 samples, 4 classes
     y_prob = np.zeros((8, 4))
     for i, val in enumerate(y_pred):
@@ -146,7 +148,7 @@ def test_calculate_metrics() -> None:
 
     evaluator = MagicMock(spec=ImageClassifierEvaluator)
     evaluator.class_names = ["A", "B", "C", "D"]
-    
+
     metrics = ImageClassifierEvaluator._calculate_metrics(evaluator, y_true, y_pred, y_prob)
 
     assert metrics["test_accuracy"] == 7 / 8
@@ -160,22 +162,19 @@ def test_calculate_metrics() -> None:
 @patch("src.components.model_evaluation.ImageClassifierEvaluator.load_best_model")
 @patch("src.components.model_evaluation.mlflow")
 def test_evaluate_and_save_artifacts(
-    mock_mlflow: MagicMock,
-    mock_load_model: MagicMock,
-    config_yaml: Path,
-    tmp_path: Path
+    mock_mlflow: MagicMock, mock_load_model: MagicMock, config_yaml: Path, tmp_path: Path
 ) -> None:
     """Verifies complete evaluation loop: reports and plots are written, and MLflow is called."""
     # 1. Setup mock model that predicts labels deterministically
     mock_model = MagicMock()
     mock_load_model.return_value = mock_model
-    
+
     # Model forward pass outputs logits
     # We will pass 8 inputs, returning logits that argmax to 0, 1, 2, 3
     dummy_logits = torch.zeros((4, 4))
     for i in range(4):
-        dummy_logits[i, i] = 10.0 # High value for class i
-    
+        dummy_logits[i, i] = 10.0  # High value for class i
+
     # Dataloader with batch size 4, size 8
     dataset = DummyEvalDataset(size=8)
     test_loader = DataLoader(dataset, batch_size=4, shuffle=False)
@@ -185,13 +184,13 @@ def test_evaluate_and_save_artifacts(
 
     reports_dir = tmp_path / "reports"
     evaluator = ImageClassifierEvaluator(training_config_path=config_yaml, reports_dir=reports_dir)
-    
+
     # 2. Run evaluation
     metrics = evaluator.evaluate(test_loader)
-    
+
     # 3. Assertions on calculated metrics
     assert metrics["test_accuracy"] == 1.0  # Perfect predictions in our mock setup
-    
+
     # 4. Verify output files exist
     assert (reports_dir / "Metrics.json").exists()
     assert (reports_dir / "Classification_Report.csv").exists()

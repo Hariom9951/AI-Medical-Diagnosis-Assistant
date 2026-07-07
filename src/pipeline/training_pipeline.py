@@ -70,7 +70,7 @@ class TrainingPipeline:
         # 4. Train model
         logger.info("STAGE 4/4: Model Training...")
         trainer = ImageClassifierTrainer(self.training_config_path)
-        
+
         # We only train using the image loader (as text models are out-of-scope for Phase 14 model trainer)
         history = trainer.train(
             train_loader=loaders_dict["train_img_loader"],

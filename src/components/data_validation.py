@@ -76,7 +76,7 @@ class DataValidationConfig:
                 "reports_dir",
                 "expected_classes",
                 "expected_dimensions",
-                "supported_image_formats"
+                "supported_image_formats",
             ]
             missing_keys = [k for k in required_keys if k not in config_dict]
             if missing_keys:
@@ -156,14 +156,18 @@ class DataValidation:
             )
 
         # 1. Structure and Class Validations
-        class_folders = [p for p in self.config.raw_images_dir.iterdir() if p.is_dir() and p.name != "masks"]
-        
+        class_folders = [
+            p for p in self.config.raw_images_dir.iterdir() if p.is_dir() and p.name != "masks"
+        ]
+
         # Nested folders check (in case data ingestion placed files in a subdirectory)
         if not class_folders:
             subdirs = [p for p in self.config.raw_images_dir.glob("**/") if p.is_dir()]
             for d in subdirs:
                 if d.name in self.config.expected_classes:
-                    class_folders = [p for p in d.parent.iterdir() if p.is_dir() and p.name != "masks"]
+                    class_folders = [
+                        p for p in d.parent.iterdir() if p.is_dir() and p.name != "masks"
+                    ]
                     break
 
         img_results: Dict[str, Any] = {
@@ -179,7 +183,7 @@ class DataValidation:
             "corrupted_list": [],
             "duplicates_list": [],
             "incorrect_dims_list": [],
-            "missing_masks_list": []
+            "missing_masks_list": [],
         }
 
         # Validate folder matching against expected classes
@@ -194,17 +198,19 @@ class DataValidation:
         # 2. Iterate through folders and sanitize files
         for folder in class_folders:
             class_name = folder.name
-            
+
             # Sub-folders structure validation: images/ and masks/ should exist
             images_subfolder = folder / "images"
             masks_subfolder = folder / "masks"
 
             if not images_subfolder.exists():
-                logger.warning("Folder %s lacks an 'images/' subfolder. Checking base directory...", class_name)
+                logger.warning(
+                    "Folder %s lacks an 'images/' subfolder. Checking base directory...", class_name
+                )
                 images_subfolder = folder
 
             class_files = [p for p in images_subfolder.glob("**/*") if p.is_file()]
-            
+
             img_results["class_distribution"][class_name] = 0
 
             for file_path in class_files:
@@ -241,7 +247,11 @@ class DataValidation:
                 # C. Validate image duplicate hashes
                 file_hash = self._calculate_file_hash(file_path)
                 if file_hash in file_hashes:
-                    logger.info("Deleting duplicate image file: %s (matches %s)", file_path, file_hashes[file_hash])
+                    logger.info(
+                        "Deleting duplicate image file: %s (matches %s)",
+                        file_path,
+                        file_hashes[file_hash],
+                    )
                     try:
                         file_path.unlink()
                         img_results["deleted_duplicates"] += 1
@@ -278,7 +288,9 @@ class DataValidation:
                 img_results["final_images_count"] += 1
                 img_results["class_distribution"][class_name] += 1
 
-        logger.info("Image validation complete. Kept %d healthy scans.", img_results["final_images_count"])
+        logger.info(
+            "Image validation complete. Kept %d healthy scans.", img_results["final_images_count"]
+        )
         return img_results
 
     def validate_symptoms(self) -> Dict[str, Any]:
@@ -331,7 +343,7 @@ class DataValidation:
             "final_records_count": 0,
             "null_cells_count": 0,
             "columns_found": list(df.columns),
-            "missing_per_column": {}
+            "missing_per_column": {},
         }
 
         # 2. Count and drop duplicates
@@ -342,14 +354,20 @@ class DataValidation:
         # 3. Clean invalid labels
         # Drops empty labels, placeholders, or labels containing numeric variables
         invalid_mask: pd.Series = (
-            df[disease_col].isna() |
-            (df[disease_col].astype(str).str.strip().str.lower().isin(["", "none", "null", "nan"])) |
-            (~df[disease_col].astype(str).str.replace("_", "").str.replace(" ", "").str.isalpha())
+            df[disease_col].isna()
+            | (
+                df[disease_col]
+                .astype(str)
+                .str.strip()
+                .str.lower()
+                .isin(["", "none", "null", "nan"])
+            )
+            | (~df[disease_col].astype(str).str.replace("_", "").str.replace(" ", "").str.isalpha())
         )
-        
+
         invalid_rows_count: int = int(invalid_mask.sum())
         csv_results["deleted_invalid_labels"] = invalid_rows_count
-        
+
         # Filter out invalid label rows
         df = df.loc[~invalid_mask]
 
@@ -382,7 +400,8 @@ class DataValidation:
         # 1. Validation_Report.md
         report_md_path = self.config.reports_dir / "Validation_Report.md"
         with open(report_md_path, "w", encoding="utf-8") as f:
-            f.write(f"""# Data Validation Report
+            f.write(
+                f"""# Data Validation Report
 
 Provides detailed validation status and cleaning audit logs for the clinical datasets.
 
@@ -401,11 +420,13 @@ Provides detailed validation status and cleaning audit logs for the clinical dat
     *   **Scans with Missing Masks:** `{img_results["missing_masks_count"]}`
 
 ### Image Class Counts
-""")
+"""
+            )
             for cls, count in img_results["class_distribution"].items():
                 f.write(f"*   **{cls}:** `{count} scans`\n")
 
-            f.write(f"""
+            f.write(
+                f"""
 ---
 
 ## 2. Tabular Symptoms Dataset Validation Summary
@@ -424,7 +445,8 @@ Provides detailed validation status and cleaning audit logs for the clinical dat
 
 *   **Status:** **PASSED**
 *   *Note:* The sanitized image assets are checked for duplicates and corruptions. Tabular symptom variables are cleaned of duplicates. Ready for Phase 12 (Data Transformation).
-""")
+"""
+            )
 
         # 2. validation_summary.json
         summary_json_path = self.config.reports_dir / "validation_summary.json"
@@ -437,15 +459,15 @@ Provides detailed validation status and cleaning audit logs for the clinical dat
                 "duplicates_deleted": img_results["deleted_duplicates"],
                 "incorrect_dimensions": img_results["incorrect_dimensions_count"],
                 "missing_masks": img_results["missing_masks_count"],
-                "classes": img_results["class_distribution"]
+                "classes": img_results["class_distribution"],
             },
             "symptoms": {
                 "initial_count": csv_results["initial_records_count"],
                 "final_count": csv_results["final_records_count"],
                 "duplicates_deleted": csv_results["deleted_duplicates"],
                 "invalid_labels_deleted": csv_results["deleted_invalid_labels"],
-                "null_cells": csv_results["null_cells_count"]
-            }
+                "null_cells": csv_results["null_cells_count"],
+            },
         }
         with open(summary_json_path, "w", encoding="utf-8") as f:
             json.dump(summary_data, f, indent=4)
@@ -465,7 +487,7 @@ Provides detailed validation status and cleaning audit logs for the clinical dat
             ["final_symptom_records", csv_results["final_records_count"]],
             ["dropped_symptom_duplicates", csv_results["deleted_duplicates"]],
             ["dropped_symptom_invalid_labels", csv_results["deleted_invalid_labels"]],
-            ["symptom_null_cells", csv_results["null_cells_count"]]
+            ["symptom_null_cells", csv_results["null_cells_count"]],
         ]
         with open(stats_csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)

@@ -55,11 +55,11 @@ class EvaluationPipeline:
         logger.info("STAGE 2/2: Evaluating Best Checkpoint...")
         evaluator = ImageClassifierEvaluator(
             training_config_path=self.training_config_path,
-            reports_dir=transformation.config.reports_dir
+            reports_dir=transformation.config.reports_dir,
         )
-        
+
         metrics = evaluator.evaluate(test_img_loader)
-        
+
         logger.info("======================================================================")
         logger.info("Phase 15 Evaluation Pipeline Finished Successfully")
         logger.info("======================================================================")

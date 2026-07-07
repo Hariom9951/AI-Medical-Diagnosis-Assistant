@@ -90,9 +90,7 @@ def load_best_checkpoint(
             elif val_loss == best_val_loss:
                 # Compare val_acc if both are not None
                 if val_acc is not None:
-                    current_best_acc = (
-                        best_val_acc if best_val_acc != -float("inf") else -1.0
-                    )
+                    current_best_acc = best_val_acc if best_val_acc != -float("inf") else -1.0
                     if val_acc > current_best_acc:
                         is_better = True
 

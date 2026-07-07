@@ -33,7 +33,7 @@ def main() -> None:
             transformation_config_path=Path("configs/transformation_config.yaml"),
             training_config_path=Path("configs/training_config.yaml"),
         )
-        
+
         # Execute the pipeline
         pipeline.run(max_epochs=args.epochs)
         logger.info("Training pipeline execution finished successfully.")

@@ -43,14 +43,14 @@ class MedicalReportGenerator:
         self.styles = getSampleStyleSheet()
 
         # Color palette
-        self.primary_color = colors.HexColor("#1e3a8a")     # Deep blue / clinical theme
-        self.secondary_color = colors.HexColor("#3b82f6")   # Slate blue
-        self.text_color = colors.HexColor("#1f2937")        # Charcoal
-        self.muted_text = colors.HexColor("#6b7280")        # Gray
-        self.bg_light = colors.HexColor("#f3f4f6")          # Very light gray
-        self.accent_success = colors.HexColor("#10b981")    # Emerald green
-        self.accent_warning = colors.HexColor("#f59e0b")    # Amber
-        self.accent_danger = colors.HexColor("#ef4444")     # Red
+        self.primary_color = colors.HexColor("#1e3a8a")  # Deep blue / clinical theme
+        self.secondary_color = colors.HexColor("#3b82f6")  # Slate blue
+        self.text_color = colors.HexColor("#1f2937")  # Charcoal
+        self.muted_text = colors.HexColor("#6b7280")  # Gray
+        self.bg_light = colors.HexColor("#f3f4f6")  # Very light gray
+        self.accent_success = colors.HexColor("#10b981")  # Emerald green
+        self.accent_warning = colors.HexColor("#f59e0b")  # Amber
+        self.accent_danger = colors.HexColor("#ef4444")  # Red
 
         self._configure_custom_styles()
 
@@ -204,7 +204,11 @@ class MedicalReportGenerator:
 
         # 1. Main Header Title
         story.append(Paragraph("CLINICAL DIAGNOSIS REPORT", self.title_style))
-        story.append(Paragraph("AI-Assisted Diagnostic Analysis & Decision Support System", self.subtitle_style))
+        story.append(
+            Paragraph(
+                "AI-Assisted Diagnostic Analysis & Decision Support System", self.subtitle_style
+            )
+        )
         story.append(Spacer(1, 10))
 
         # 2. Metadata / Administrative Info (Key-Value Grid)
@@ -256,7 +260,11 @@ class MedicalReportGenerator:
         story.append(Paragraph("Primary Diagnostic Analysis", self.section_heading))
 
         conf_percentage = f"{confidence * 100:.2f}%"
-        bg_color = self.accent_success if confidence >= 0.75 else (self.accent_warning if confidence >= 0.45 else self.accent_danger)
+        bg_color = (
+            self.accent_success
+            if confidence >= 0.75
+            else (self.accent_warning if confidence >= 0.45 else self.accent_danger)
+        )
 
         result_data = [
             [
@@ -265,7 +273,9 @@ class MedicalReportGenerator:
             ],
             [
                 Paragraph(f"<font size=12><b>{predicted_disease}</b></font>", self.value_style),
-                Paragraph(f"<font color='white'><b>{conf_percentage}</b></font>", self.table_header_style),
+                Paragraph(
+                    f"<font color='white'><b>{conf_percentage}</b></font>", self.table_header_style
+                ),
             ],
         ]
 
@@ -287,7 +297,9 @@ class MedicalReportGenerator:
         story.append(Spacer(1, 15))
 
         # 5. Top-N Probability breakdown table
-        story.append(Paragraph("Differential Diagnosis Breakdown (Probability Index)", self.section_heading))
+        story.append(
+            Paragraph("Differential Diagnosis Breakdown (Probability Index)", self.section_heading)
+        )
 
         prob_data = [
             [
@@ -345,7 +357,9 @@ class MedicalReportGenerator:
         story.append(KeepTogether(disclaimer_story))
 
         # Build document
-        doc.build(story, onFirstPage=self._draw_header_footer, onLaterPages=self._draw_header_footer)
+        doc.build(
+            story, onFirstPage=self._draw_header_footer, onLaterPages=self._draw_header_footer
+        )
 
         logger.info("PDF medical report generated successfully: %s", pdf_path)
         return pdf_path

@@ -26,7 +26,7 @@ def reset_logger_configuration() -> None:
 def test_logger_fallback_configuration(tmp_path: Path) -> None:
     """Verifies that the fallback logging creates a rotating file correctly."""
     log_file = tmp_path / "test_logs" / "app.log"
-    
+
     # Configure using fallback params (JSON config path does not exist)
     AppLogger.configure(
         config_path=tmp_path / "missing_config.json",
@@ -83,7 +83,7 @@ def test_logger_file_rotation(tmp_path: Path) -> None:
 def test_log_exception_decorator() -> None:
     """Verifies that the @log_exception decorator captures and logs traceback exceptions."""
     mock_logger = MagicMock()
-    
+
     @log_exception(mock_logger)
     def division_by_zero() -> float:
         raise ZeroDivisionError("division by zero")

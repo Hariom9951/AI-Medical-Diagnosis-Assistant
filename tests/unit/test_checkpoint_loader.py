@@ -255,4 +255,3 @@ def test_load_best_checkpoint_missing_optimizer_state_in_checkpoint(tmp_path):
 
     res = load_best_checkpoint(ckpt_dir, model, optimizer, device="cpu")
     assert res["epoch"] == 1
-

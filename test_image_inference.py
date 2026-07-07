@@ -31,8 +31,7 @@ logger = AppLogger.get_logger(__name__)
 CHECKPOINT_DIR = Path("artifacts/checkpoints")
 
 SAMPLE_IMAGE = Path(
-    "data/raw/covid19-radiography-database"
-    "/COVID-19_Radiography_Dataset/COVID/images/COVID-1.png"
+    "data/raw/covid19-radiography-database" "/COVID-19_Radiography_Dataset/COVID/images/COVID-1.png"
 )
 
 

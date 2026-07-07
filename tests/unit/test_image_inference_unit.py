@@ -61,9 +61,7 @@ def test_pipeline_initialization(
     mock_classifier.return_value = mock_model
 
     ckpt_path = tmp_path / "best_model.pth"
-    pipeline = ImageInferencePipeline(
-        config_path=test_config, checkpoint_path=ckpt_path
-    )
+    pipeline = ImageInferencePipeline(config_path=test_config, checkpoint_path=ckpt_path)
 
     assert pipeline.checkpoint_info["checkpoint_path"] == ckpt_path
     assert pipeline.config.num_classes == 4

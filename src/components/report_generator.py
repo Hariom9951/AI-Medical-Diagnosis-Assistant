@@ -38,16 +38,16 @@ class PDFReportGenerator:
         """
         self.reports_dir = reports_dir
         self.reports_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Styles setup
         self.styles = getSampleStyleSheet()
-        
+
         # Palette configuration
-        self.primary_color = colors.HexColor("#1A365D")    # Dark navy
+        self.primary_color = colors.HexColor("#1A365D")  # Dark navy
         self.secondary_color = colors.HexColor("#2B6CB0")  # Slate blue
-        self.accent_color = colors.HexColor("#D69E2E")     # Gold/Amber
-        self.text_color = colors.HexColor("#2D3748")       # Charcoal
-        self.bg_light = colors.HexColor("#F7FAFC")         # Very light gray
+        self.accent_color = colors.HexColor("#D69E2E")  # Gold/Amber
+        self.text_color = colors.HexColor("#2D3748")  # Charcoal
+        self.bg_light = colors.HexColor("#F7FAFC")  # Very light gray
 
         self._configure_custom_styles()
 
@@ -60,7 +60,7 @@ class PDFReportGenerator:
             fontSize=24,
             leading=28,
             textColor=self.primary_color,
-            spaceAfter=15
+            spaceAfter=15,
         )
         self.subtitle_style = ParagraphStyle(
             "ReportSubtitle",
@@ -69,7 +69,7 @@ class PDFReportGenerator:
             fontSize=11,
             leading=14,
             textColor=self.secondary_color,
-            spaceAfter=25
+            spaceAfter=25,
         )
         self.h1_style = ParagraphStyle(
             "ReportH1",
@@ -79,7 +79,7 @@ class PDFReportGenerator:
             leading=20,
             textColor=self.primary_color,
             spaceBefore=15,
-            spaceAfter=10
+            spaceAfter=10,
         )
         self.h2_style = ParagraphStyle(
             "ReportH2",
@@ -89,7 +89,7 @@ class PDFReportGenerator:
             leading=15,
             textColor=self.secondary_color,
             spaceBefore=10,
-            spaceAfter=6
+            spaceAfter=6,
         )
         self.body_style = ParagraphStyle(
             "ReportBody",
@@ -98,7 +98,7 @@ class PDFReportGenerator:
             fontSize=10,
             leading=14,
             textColor=self.text_color,
-            spaceAfter=10
+            spaceAfter=10,
         )
         self.table_header_style = ParagraphStyle(
             "TableHeader",
@@ -106,7 +106,7 @@ class PDFReportGenerator:
             fontName="Helvetica-Bold",
             fontSize=9,
             leading=11,
-            textColor=colors.white
+            textColor=colors.white,
         )
         self.table_cell_style = ParagraphStyle(
             "TableCell",
@@ -114,7 +114,7 @@ class PDFReportGenerator:
             fontName="Helvetica",
             fontSize=9,
             leading=11,
-            textColor=self.text_color
+            textColor=self.text_color,
         )
         self.caption_style = ParagraphStyle(
             "ImageCaption",
@@ -123,8 +123,8 @@ class PDFReportGenerator:
             fontSize=8,
             leading=10,
             textColor=colors.gray,
-            alignment=1, # Center
-            spaceAfter=15
+            alignment=1,  # Center
+            spaceAfter=15,
         )
 
     def _draw_header_footer(self, canvas: Any, doc: SimpleDocTemplate, title: str) -> None:
@@ -133,12 +133,12 @@ class PDFReportGenerator:
         canvas.setFont("Helvetica-Bold", 8)
         canvas.setFillColor(self.secondary_color)
         canvas.drawString(inch, 10.5 * inch, "MULTIMODAL AI MEDICAL DIAGNOSIS ASSISTANT")
-        
+
         # Header rule
         canvas.setStrokeColor(self.secondary_color)
         canvas.setLineWidth(0.5)
         canvas.line(inch, 10.4 * inch, 7.5 * inch, 10.4 * inch)
-        
+
         # Footer rule
         canvas.line(inch, 0.75 * inch, 7.5 * inch, 0.75 * inch)
         canvas.setFont("Helvetica", 8)
@@ -155,16 +155,28 @@ class PDFReportGenerator:
         image_hyperparams: Dict[str, Any],
         nlp_hyperparams: Dict[str, Any],
         image_curves_path: Optional[Path] = None,
-        nlp_curves_path: Optional[Path] = None
+        nlp_curves_path: Optional[Path] = None,
     ) -> Path:
         """Generates Training_Report.pdf summarizing training runs, parameters and curves."""
         pdf_path = self.reports_dir / output_name
-        doc = SimpleDocTemplate(str(pdf_path), pagesize=letter, rightMargin=54, leftMargin=54, topMargin=54, bottomMargin=54)
+        doc = SimpleDocTemplate(
+            str(pdf_path),
+            pagesize=letter,
+            rightMargin=54,
+            leftMargin=54,
+            topMargin=54,
+            bottomMargin=54,
+        )
         story: List[Any] = []
 
         # Title Block
         story.append(Paragraph("Training Optimization Report", self.title_style))
-        story.append(Paragraph("Systematic parameter optimization runs across Image and Symptom classification models", self.subtitle_style))
+        story.append(
+            Paragraph(
+                "Systematic parameter optimization runs across Image and Symptom classification models",
+                self.subtitle_style,
+            )
+        )
         story.append(Spacer(1, 10))
 
         # Executive Summary
@@ -181,28 +193,84 @@ class PDFReportGenerator:
         # Hyperparameters Table
         story.append(Paragraph("2. Optimized Hyperparameters", self.h1_style))
         param_data = [
-            [Paragraph("Hyperparameter", self.table_header_style), Paragraph("EfficientNet Image Classifier", self.table_header_style), Paragraph("BioBERT Symptom Classifier", self.table_header_style)],
-            [Paragraph("Optimizer", self.table_cell_style), Paragraph(str(image_hyperparams.get("optimizer", "AdamW")), self.table_cell_style), Paragraph(str(nlp_hyperparams.get("optimizer", "AdamW")), self.table_cell_style)],
-            [Paragraph("Learning Rate", self.table_cell_style), Paragraph(str(image_hyperparams.get("learning_rate", "0.001")), self.table_cell_style), Paragraph(str(nlp_hyperparams.get("learning_rate", "2e-5")), self.table_cell_style)],
-            [Paragraph("Weight Decay", self.table_cell_style), Paragraph(str(image_hyperparams.get("weight_decay", "0.0001")), self.table_cell_style), Paragraph(str(nlp_hyperparams.get("weight_decay", "0.01")), self.table_cell_style)],
-            [Paragraph("Batch Size", self.table_cell_style), Paragraph(str(image_hyperparams.get("batch_size", "32")), self.table_cell_style), Paragraph(str(nlp_hyperparams.get("batch_size", "16")), self.table_cell_style)],
-            [Paragraph("Epochs / Limit", self.table_cell_style), Paragraph(str(image_hyperparams.get("epochs", "25")), self.table_cell_style), Paragraph(str(nlp_hyperparams.get("epochs", "10")), self.table_cell_style)],
-            [Paragraph("Scheduler", self.table_cell_style), Paragraph(str(image_hyperparams.get("scheduler", "Cosine")), self.table_cell_style), Paragraph(str(nlp_hyperparams.get("scheduler", "Linear Warmup")), self.table_cell_style)],
-            [Paragraph("Imbalance Strategy", self.table_cell_style), Paragraph("Weighted Cross Entropy", self.table_cell_style), Paragraph("Weighted Cross Entropy", self.table_cell_style)],
-            [Paragraph("Mixed Precision (AMP)", self.table_cell_style), Paragraph(str(image_hyperparams.get("use_amp", "True")), self.table_cell_style), Paragraph("False", self.table_cell_style)],
-            [Paragraph("Gradient Clipping", self.table_cell_style), Paragraph(f"Max Norm: {image_hyperparams.get('max_grad_norm', '1.0')}", self.table_cell_style), Paragraph(f"Max Norm: {nlp_hyperparams.get('max_grad_norm', '1.0')}", self.table_cell_style)],
+            [
+                Paragraph("Hyperparameter", self.table_header_style),
+                Paragraph("EfficientNet Image Classifier", self.table_header_style),
+                Paragraph("BioBERT Symptom Classifier", self.table_header_style),
+            ],
+            [
+                Paragraph("Optimizer", self.table_cell_style),
+                Paragraph(str(image_hyperparams.get("optimizer", "AdamW")), self.table_cell_style),
+                Paragraph(str(nlp_hyperparams.get("optimizer", "AdamW")), self.table_cell_style),
+            ],
+            [
+                Paragraph("Learning Rate", self.table_cell_style),
+                Paragraph(
+                    str(image_hyperparams.get("learning_rate", "0.001")), self.table_cell_style
+                ),
+                Paragraph(str(nlp_hyperparams.get("learning_rate", "2e-5")), self.table_cell_style),
+            ],
+            [
+                Paragraph("Weight Decay", self.table_cell_style),
+                Paragraph(
+                    str(image_hyperparams.get("weight_decay", "0.0001")), self.table_cell_style
+                ),
+                Paragraph(str(nlp_hyperparams.get("weight_decay", "0.01")), self.table_cell_style),
+            ],
+            [
+                Paragraph("Batch Size", self.table_cell_style),
+                Paragraph(str(image_hyperparams.get("batch_size", "32")), self.table_cell_style),
+                Paragraph(str(nlp_hyperparams.get("batch_size", "16")), self.table_cell_style),
+            ],
+            [
+                Paragraph("Epochs / Limit", self.table_cell_style),
+                Paragraph(str(image_hyperparams.get("epochs", "25")), self.table_cell_style),
+                Paragraph(str(nlp_hyperparams.get("epochs", "10")), self.table_cell_style),
+            ],
+            [
+                Paragraph("Scheduler", self.table_cell_style),
+                Paragraph(str(image_hyperparams.get("scheduler", "Cosine")), self.table_cell_style),
+                Paragraph(
+                    str(nlp_hyperparams.get("scheduler", "Linear Warmup")), self.table_cell_style
+                ),
+            ],
+            [
+                Paragraph("Imbalance Strategy", self.table_cell_style),
+                Paragraph("Weighted Cross Entropy", self.table_cell_style),
+                Paragraph("Weighted Cross Entropy", self.table_cell_style),
+            ],
+            [
+                Paragraph("Mixed Precision (AMP)", self.table_cell_style),
+                Paragraph(str(image_hyperparams.get("use_amp", "True")), self.table_cell_style),
+                Paragraph("False", self.table_cell_style),
+            ],
+            [
+                Paragraph("Gradient Clipping", self.table_cell_style),
+                Paragraph(
+                    f"Max Norm: {image_hyperparams.get('max_grad_norm', '1.0')}",
+                    self.table_cell_style,
+                ),
+                Paragraph(
+                    f"Max Norm: {nlp_hyperparams.get('max_grad_norm', '1.0')}",
+                    self.table_cell_style,
+                ),
+            ],
         ]
-        
+
         t = Table(param_data, colWidths=[2.2 * inch, 2.4 * inch, 2.4 * inch])
-        t.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), self.primary_color),
-            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, self.bg_light]),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-            ('TOPPADDING', (0,0), (-1,-1), 6),
-        ]))
+        t.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), self.primary_color),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, self.bg_light]),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
         story.append(t)
         story.append(Spacer(1, 15))
 
@@ -213,7 +281,12 @@ class PDFReportGenerator:
             # Resize image to fit nicely
             img = Image(str(image_curves_path), width=6.5 * inch, height=2.7 * inch)
             story.append(img)
-            story.append(Paragraph("Figure 1: EfficientNet-B0 training and validation accuracy/loss plots.", self.caption_style))
+            story.append(
+                Paragraph(
+                    "Figure 1: EfficientNet-B0 training and validation accuracy/loss plots.",
+                    self.caption_style,
+                )
+            )
         else:
             story.append(Paragraph("Image training curves plot not available.", self.body_style))
 
@@ -221,17 +294,25 @@ class PDFReportGenerator:
         if nlp_curves_path and nlp_curves_path.exists():
             img = Image(str(nlp_curves_path), width=6.5 * inch, height=2.7 * inch)
             story.append(img)
-            story.append(Paragraph("Figure 2: BioBERT symptom classifier training and validation curves.", self.caption_style))
+            story.append(
+                Paragraph(
+                    "Figure 2: BioBERT symptom classifier training and validation curves.",
+                    self.caption_style,
+                )
+            )
         else:
             story.append(Paragraph("NLP training curves plot not available.", self.body_style))
- 
+
         # Build Document
-        doc.build(story, onFirstPage=lambda c, d: self._draw_header_footer(c, d, "Training Report"),
-                  onLaterPages=lambda c, d: self._draw_header_footer(c, d, "Training Report"))
-         
+        doc.build(
+            story,
+            onFirstPage=lambda c, d: self._draw_header_footer(c, d, "Training Report"),
+            onLaterPages=lambda c, d: self._draw_header_footer(c, d, "Training Report"),
+        )
+
         logger.info("Generated PDF Training Report at: %s", pdf_path)
         return pdf_path
- 
+
     def generate_evaluation_report(
         self,
         output_name: str,
@@ -240,62 +321,113 @@ class PDFReportGenerator:
         image_cm_path: Optional[Path] = None,
         nlp_cm_path: Optional[Path] = None,
         image_roc_path: Optional[Path] = None,
-        nlp_roc_path: Optional[Path] = None
+        nlp_roc_path: Optional[Path] = None,
     ) -> Path:
         """Generates Evaluation_Report.pdf illustrating model test metrics and plots."""
         pdf_path = self.reports_dir / output_name
-        doc = SimpleDocTemplate(str(pdf_path), pagesize=letter, rightMargin=54, leftMargin=54, topMargin=54, bottomMargin=54)
+        doc = SimpleDocTemplate(
+            str(pdf_path),
+            pagesize=letter,
+            rightMargin=54,
+            leftMargin=54,
+            topMargin=54,
+            bottomMargin=54,
+        )
         story: List[Any] = []
- 
+
         # Title Block
         story.append(Paragraph("Model Evaluation Report", self.title_style))
-        story.append(Paragraph("Statistical evaluation of the improved image and text classifier models on test datasets", self.subtitle_style))
+        story.append(
+            Paragraph(
+                "Statistical evaluation of the improved image and text classifier models on test datasets",
+                self.subtitle_style,
+            )
+        )
         story.append(Spacer(1, 10))
- 
+
         # Overall Metrics Section
         story.append(Paragraph("1. Test Performance Metrics Summary", self.h1_style))
         metrics_data = [
-            [Paragraph("Metric", self.table_header_style), Paragraph("Image Model (EfficientNet)", self.table_header_style), Paragraph("NLP Model (BioBERT)", self.table_header_style)],
-            [Paragraph("Test Accuracy", self.table_cell_style), Paragraph(f"{image_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style)],
-            [Paragraph("Macro Precision", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_precision', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_precision', 0.0):.4f}", self.table_cell_style)],
-            [Paragraph("Macro Recall", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style)],
-            [Paragraph("Macro F1-Score", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_f1', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_f1', 0.0):.4f}", self.table_cell_style)],
-            [Paragraph("Macro ROC-AUC", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_roc_auc', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_roc_auc', 0.0):.4f}", self.table_cell_style)],
+            [
+                Paragraph("Metric", self.table_header_style),
+                Paragraph("Image Model (EfficientNet)", self.table_header_style),
+                Paragraph("NLP Model (BioBERT)", self.table_header_style),
+            ],
+            [
+                Paragraph("Test Accuracy", self.table_cell_style),
+                Paragraph(f"{image_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style),
+                Paragraph(f"{nlp_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style),
+            ],
+            [
+                Paragraph("Macro Precision", self.table_cell_style),
+                Paragraph(
+                    f"{image_metrics.get('macro_precision', 0.0):.4f}", self.table_cell_style
+                ),
+                Paragraph(f"{nlp_metrics.get('macro_precision', 0.0):.4f}", self.table_cell_style),
+            ],
+            [
+                Paragraph("Macro Recall", self.table_cell_style),
+                Paragraph(f"{image_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style),
+                Paragraph(f"{nlp_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style),
+            ],
+            [
+                Paragraph("Macro F1-Score", self.table_cell_style),
+                Paragraph(f"{image_metrics.get('macro_f1', 0.0):.4f}", self.table_cell_style),
+                Paragraph(f"{nlp_metrics.get('macro_f1', 0.0):.4f}", self.table_cell_style),
+            ],
+            [
+                Paragraph("Macro ROC-AUC", self.table_cell_style),
+                Paragraph(f"{image_metrics.get('macro_roc_auc', 0.0):.4f}", self.table_cell_style),
+                Paragraph(f"{nlp_metrics.get('macro_roc_auc', 0.0):.4f}", self.table_cell_style),
+            ],
         ]
         t = Table(metrics_data, colWidths=[2.2 * inch, 2.4 * inch, 2.4 * inch])
-        t.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), self.primary_color),
-            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, self.bg_light]),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
-            ('TOPPADDING', (0,0), (-1,-1), 5),
-        ]))
+        t.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), self.primary_color),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, self.bg_light]),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
         story.append(t)
         story.append(Spacer(1, 15))
 
         # Confusion Matrices Block
         story.append(PageBreak())
         story.append(Paragraph("2. Confusion Matrices", self.h1_style))
-        
+
         # Grid layout for images to sit side-by-side or stacked
         if image_cm_path and image_cm_path.exists():
             img_img_cm = Image(str(image_cm_path), width=3.2 * inch, height=2.7 * inch)
         else:
             img_img_cm = Paragraph("Image CM not available.", self.body_style)
-            
+
         if nlp_cm_path and nlp_cm_path.exists():
             img_nlp_cm = Image(str(nlp_cm_path), width=3.2 * inch, height=2.7 * inch)
         else:
             img_nlp_cm = Paragraph("NLP CM not available.", self.body_style)
 
         cm_table = Table([[img_img_cm, img_nlp_cm]], colWidths=[3.5 * inch, 3.5 * inch])
-        cm_table.setStyle(TableStyle([
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ]))
+        cm_table.setStyle(
+            TableStyle(
+                [
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
         story.append(cm_table)
-        story.append(Paragraph("Figure 3: Confusion matrices for Image Classifier (Left) and Symptom Classifier (Right).", self.caption_style))
+        story.append(
+            Paragraph(
+                "Figure 3: Confusion matrices for Image Classifier (Left) and Symptom Classifier (Right).",
+                self.caption_style,
+            )
+        )
         story.append(Spacer(1, 10))
 
         # ROC Curves Block
@@ -311,17 +443,29 @@ class PDFReportGenerator:
             img_nlp_roc = Paragraph("NLP ROC not available.", self.body_style)
 
         roc_table = Table([[img_img_roc, img_nlp_roc]], colWidths=[3.5 * inch, 3.5 * inch])
-        roc_table.setStyle(TableStyle([
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ]))
+        roc_table.setStyle(
+            TableStyle(
+                [
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ]
+            )
+        )
         story.append(roc_table)
-        story.append(Paragraph("Figure 4: One-vs-Rest ROC curves for Image model (Left) and text model (Right).", self.caption_style))
+        story.append(
+            Paragraph(
+                "Figure 4: One-vs-Rest ROC curves for Image model (Left) and text model (Right).",
+                self.caption_style,
+            )
+        )
 
         # Build Document
-        doc.build(story, onFirstPage=lambda c, d: self._draw_header_footer(c, d, "Evaluation Report"),
-                  onLaterPages=lambda c, d: self._draw_header_footer(c, d, "Evaluation Report"))
-        
+        doc.build(
+            story,
+            onFirstPage=lambda c, d: self._draw_header_footer(c, d, "Evaluation Report"),
+            onLaterPages=lambda c, d: self._draw_header_footer(c, d, "Evaluation Report"),
+        )
+
         logger.info("Generated PDF Evaluation Report at: %s", pdf_path)
         return pdf_path
 
@@ -335,16 +479,28 @@ class PDFReportGenerator:
         image_time: float,
         nlp_time: float,
         image_best_epoch: int,
-        nlp_best_epoch: int
+        nlp_best_epoch: int,
     ) -> Path:
         """Generates Model_Comparison_Report.pdf side-by-side benchmark with recommendations."""
         pdf_path = self.reports_dir / output_name
-        doc = SimpleDocTemplate(str(pdf_path), pagesize=letter, rightMargin=54, leftMargin=54, topMargin=54, bottomMargin=54)
+        doc = SimpleDocTemplate(
+            str(pdf_path),
+            pagesize=letter,
+            rightMargin=54,
+            leftMargin=54,
+            topMargin=54,
+            bottomMargin=54,
+        )
         story: List[Any] = []
 
         # Title Block
         story.append(Paragraph("Model Comparison & Benchmark Report", self.title_style))
-        story.append(Paragraph("Comparative analysis and integration strategies for image and text diagnostic modules", self.subtitle_style))
+        story.append(
+            Paragraph(
+                "Comparative analysis and integration strategies for image and text diagnostic modules",
+                self.subtitle_style,
+            )
+        )
         story.append(Spacer(1, 10))
 
         # Benchmark Table
@@ -353,28 +509,70 @@ class PDFReportGenerator:
             [
                 Paragraph("Benchmarking Metric", self.table_header_style),
                 Paragraph("Image Classifier (EfficientNet)", self.table_header_style),
-                Paragraph("Symptom Classifier (BioBERT)", self.table_header_style)
+                Paragraph("Symptom Classifier (BioBERT)", self.table_header_style),
             ],
-            [Paragraph("MLflow Run ID", self.table_cell_style), Paragraph(image_run_id, self.table_cell_style), Paragraph(nlp_run_id, self.table_cell_style)],
-            [Paragraph("Test Accuracy", self.table_cell_style), Paragraph(f"{image_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style)],
-            [Paragraph("Macro Precision", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_precision', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_precision', 0.0):.4f}", self.table_cell_style)],
-            [Paragraph("Macro Recall", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style)],
-            [Paragraph("Macro F1-Score", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_f1', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_f1', 0.0):.4f}", self.table_cell_style)],
-            [Paragraph("Macro ROC-AUC", self.table_cell_style), Paragraph(f"{image_metrics.get('macro_roc_auc', 0.0):.4f}", self.table_cell_style), Paragraph(f"{nlp_metrics.get('macro_roc_auc', 0.0):.4f}", self.table_cell_style)],
-            [Paragraph("Total Parameters", self.table_cell_style), Paragraph("11.2M", self.table_cell_style), Paragraph("109.5M", self.table_cell_style)],
-            [Paragraph("Best Training Epoch", self.table_cell_style), Paragraph(f"Epoch {image_best_epoch}", self.table_cell_style), Paragraph(f"Epoch {nlp_best_epoch}", self.table_cell_style)],
-            [Paragraph("Training Time (s)", self.table_cell_style), Paragraph(f"{image_time:.1f}s", self.table_cell_style), Paragraph(f"{nlp_time:.1f}s", self.table_cell_style)],
+            [
+                Paragraph("MLflow Run ID", self.table_cell_style),
+                Paragraph(image_run_id, self.table_cell_style),
+                Paragraph(nlp_run_id, self.table_cell_style),
+            ],
+            [
+                Paragraph("Test Accuracy", self.table_cell_style),
+                Paragraph(f"{image_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style),
+                Paragraph(f"{nlp_metrics.get('test_accuracy', 0.0):.4f}", self.table_cell_style),
+            ],
+            [
+                Paragraph("Macro Precision", self.table_cell_style),
+                Paragraph(
+                    f"{image_metrics.get('macro_precision', 0.0):.4f}", self.table_cell_style
+                ),
+                Paragraph(f"{nlp_metrics.get('macro_precision', 0.0):.4f}", self.table_cell_style),
+            ],
+            [
+                Paragraph("Macro Recall", self.table_cell_style),
+                Paragraph(f"{image_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style),
+                Paragraph(f"{nlp_metrics.get('macro_recall', 0.0):.4f}", self.table_cell_style),
+            ],
+            [
+                Paragraph("Macro F1-Score", self.table_cell_style),
+                Paragraph(f"{image_metrics.get('macro_f1', 0.0):.4f}", self.table_cell_style),
+                Paragraph(f"{nlp_metrics.get('macro_f1', 0.0):.4f}", self.table_cell_style),
+            ],
+            [
+                Paragraph("Macro ROC-AUC", self.table_cell_style),
+                Paragraph(f"{image_metrics.get('macro_roc_auc', 0.0):.4f}", self.table_cell_style),
+                Paragraph(f"{nlp_metrics.get('macro_roc_auc', 0.0):.4f}", self.table_cell_style),
+            ],
+            [
+                Paragraph("Total Parameters", self.table_cell_style),
+                Paragraph("11.2M", self.table_cell_style),
+                Paragraph("109.5M", self.table_cell_style),
+            ],
+            [
+                Paragraph("Best Training Epoch", self.table_cell_style),
+                Paragraph(f"Epoch {image_best_epoch}", self.table_cell_style),
+                Paragraph(f"Epoch {nlp_best_epoch}", self.table_cell_style),
+            ],
+            [
+                Paragraph("Training Time (s)", self.table_cell_style),
+                Paragraph(f"{image_time:.1f}s", self.table_cell_style),
+                Paragraph(f"{nlp_time:.1f}s", self.table_cell_style),
+            ],
         ]
-        
+
         t = Table(comp_data, colWidths=[2.2 * inch, 2.4 * inch, 2.4 * inch])
-        t.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), self.primary_color),
-            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, self.bg_light]),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
-            ('TOPPADDING', (0,0), (-1,-1), 5),
-        ]))
+        t.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), self.primary_color),
+                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, self.bg_light]),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
         story.append(t)
         story.append(Spacer(1, 15))
 
@@ -407,8 +605,11 @@ class PDFReportGenerator:
         story.append(Paragraph(recs_text, self.body_style))
 
         # Build Document
-        doc.build(story, onFirstPage=lambda c, d: self._draw_header_footer(c, d, "Comparison Report"),
-                  onLaterPages=lambda c, d: self._draw_header_footer(c, d, "Comparison Report"))
-        
+        doc.build(
+            story,
+            onFirstPage=lambda c, d: self._draw_header_footer(c, d, "Comparison Report"),
+            onLaterPages=lambda c, d: self._draw_header_footer(c, d, "Comparison Report"),
+        )
+
         logger.info("Generated PDF Comparison Report at: %s", pdf_path)
         return pdf_path

@@ -52,7 +52,7 @@ CLEANED_CSV = REPO_ROOT / "data" / "processed" / "disease_symptom_cleaned.csv"
 DISEASE_MAPPING_JSON = REPO_ROOT / "data" / "processed" / "disease_mapping_41.json"
 DOWNLOAD_DIR = REPO_ROOT / "data" / "downloads"
 S2D_ZIP = DOWNLOAD_DIR / "symptom2disease.zip"
-S2D_CSV_GLOB = "*.csv"          # Symptom2Disease archive contains one CSV
+S2D_CSV_GLOB = "*.csv"  # Symptom2Disease archive contains one CSV
 OUTPUT_CSV = REPO_ROOT / "data" / "processed" / "biobert_merged_dataset.csv"
 
 KAGGLE_SLUG = "niyarrbarman/symptom2disease"
@@ -61,6 +61,7 @@ KAGGLE_SLUG = "niyarrbarman/symptom2disease"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _load_disease_mapping(path: Path) -> Dict[str, int]:
     """Load {disease_name: int_label} from JSON."""
@@ -132,6 +133,7 @@ def _tokens_to_sentence(tokens: List[str]) -> str:
 # Dataset 1: Tabular → natural-language sentences
 # ---------------------------------------------------------------------------
 
+
 def convert_tabular_to_sentences(
     csv_path: Path,
     disease_mapping: Dict[str, int],
@@ -151,9 +153,7 @@ def convert_tabular_to_sentences(
     df = pd.read_csv(csv_path)
     print(f"[dataset1] Raw rows: {len(df)}")
 
-    disease_col = next(
-        (c for c in df.columns if c.strip().lower() == "disease"), "Disease"
-    )
+    disease_col = next((c for c in df.columns if c.strip().lower() == "disease"), "Disease")
     symptom_cols = [c for c in df.columns if c != disease_col]
 
     rows = []
@@ -181,12 +181,14 @@ def convert_tabular_to_sentences(
                 seen.add(cleaned)
 
         sentence = _tokens_to_sentence(tokens)
-        rows.append({
-            "text": sentence,
-            "label": label,
-            "disease": canonical,
-            "source": "dataset1",
-        })
+        rows.append(
+            {
+                "text": sentence,
+                "label": label,
+                "disease": canonical,
+                "source": "dataset1",
+            }
+        )
 
     result = pd.DataFrame(rows)
     print(f"[dataset1] Converted rows: {len(result)}  |  Skipped (unmatched): {skipped}")
@@ -197,14 +199,13 @@ def convert_tabular_to_sentences(
 # Dataset 2: Download + parse Symptom2Disease
 # ---------------------------------------------------------------------------
 
+
 def download_symptom2disease(download_dir: Path, zip_path: Path) -> None:
     """Download Symptom2Disease from Kaggle API into download_dir."""
     try:
         import kaggle  # type: ignore[import-untyped]
     except ImportError:
-        raise RuntimeError(
-            "kaggle package not installed. Run: pip install kaggle"
-        )
+        raise RuntimeError("kaggle package not installed. Run: pip install kaggle")
 
     download_dir.mkdir(parents=True, exist_ok=True)
     print(f"[dataset2] Downloading '{KAGGLE_SLUG}' from Kaggle...")
@@ -266,7 +267,9 @@ def load_symptom2disease(
         print(f"[dataset2] Found existing CSV: {existing_csv}")
         s2d_csv = existing_csv
     elif skip_download:
-        print("[dataset2] --skip-download requested and no local CSV found. Skipping Symptom2Disease.")
+        print(
+            "[dataset2] --skip-download requested and no local CSV found. Skipping Symptom2Disease."
+        )
         return pd.DataFrame(columns=["text", "label", "disease", "source"]), 0
     else:
         if not zip_path.exists():
@@ -278,9 +281,7 @@ def load_symptom2disease(
     print(f"[dataset2] Raw rows: {len(raw)}  |  columns: {list(raw.columns)}")
 
     # Identify label and text columns
-    label_col = next(
-        (c for c in raw.columns if c.strip().lower() in ("label", "disease")), None
-    )
+    label_col = next((c for c in raw.columns if c.strip().lower() in ("label", "disease")), None)
     text_col = next(
         (c for c in raw.columns if c.strip().lower() in ("text", "description", "symptom")), None
     )
@@ -309,12 +310,14 @@ def load_symptom2disease(
             dropped += 1
             continue
 
-        rows.append({
-            "text": text,
-            "label": label,
-            "disease": canonical,
-            "source": "symptom2disease",
-        })
+        rows.append(
+            {
+                "text": text,
+                "label": label,
+                "disease": canonical,
+                "source": "symptom2disease",
+            }
+        )
 
     if drop_details:
         print(f"[dataset2] WARNING: Dropped {dropped} rows due to unmatched disease names:")
@@ -329,6 +332,7 @@ def load_symptom2disease(
 # ---------------------------------------------------------------------------
 # Class distribution report
 # ---------------------------------------------------------------------------
+
 
 def print_distribution_report(
     df: pd.DataFrame,
@@ -369,7 +373,9 @@ def print_distribution_report(
         and (source_counts.get("dataset1", pd.Series(dtype=int)).get(lbl, 0) > 0)
     ]
     if ds1_only:
-        print(f"\n[note] {len(ds1_only)} diseases covered by Dataset 1 only (no Symptom2Disease samples):")
+        print(
+            f"\n[note] {len(ds1_only)} diseases covered by Dataset 1 only (no Symptom2Disease samples):"
+        )
         for d in ds1_only:
             print(f"         • {d}")
     print()
@@ -378,6 +384,7 @@ def print_distribution_report(
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(

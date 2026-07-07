@@ -30,7 +30,7 @@ class MedicalImageDataset(Dataset):
         image_paths: List[Path],
         labels: List[int],
         transform: Optional[A.Compose] = None,
-        cache_active: bool = False
+        cache_active: bool = False,
     ) -> None:
         """Initializes the medical image dataset.
 
@@ -43,11 +43,13 @@ class MedicalImageDataset(Dataset):
         self.image_paths = image_paths
         self.labels = labels
         self.transform = transform
-        
+
         # RAM Caching system
         self.cache: Optional[Dict[str, torch.Tensor]] = {} if cache_active else None
         if cache_active:
-            logger.info("RAM Caching activated for MedicalImageDataset with %d samples.", len(image_paths))
+            logger.info(
+                "RAM Caching activated for MedicalImageDataset with %d samples.", len(image_paths)
+            )
 
     def __len__(self) -> int:
         return len(self.image_paths)
@@ -97,7 +99,7 @@ class SymptomTextDataset(Dataset):
         symptom_strings: List[str],
         labels: List[int],
         tokenizer: Optional[DistilBertTokenizer] = None,
-        max_length: int = 64
+        max_length: int = 64,
     ) -> None:
         """Initializes the symptoms text dataset.
 
@@ -115,7 +117,9 @@ class SymptomTextDataset(Dataset):
             try:
                 self.tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
             except Exception as e:
-                logger.warning("DistilBertTokenizer online load failed: %s. Using fallback token mock.", e)
+                logger.warning(
+                    "DistilBertTokenizer online load failed: %s. Using fallback token mock.", e
+                )
                 self.tokenizer = None
         else:
             self.tokenizer = tokenizer
@@ -139,12 +143,12 @@ class SymptomTextDataset(Dataset):
                     padding="max_length",
                     truncation=True,
                     max_length=self.max_length,
-                    return_tensors="pt"
+                    return_tensors="pt",
                 )
                 return (
                     encoded["input_ids"].squeeze(0),
                     encoded["attention_mask"].squeeze(0),
-                    label
+                    label,
                 )
             except Exception as e:
                 logger.error("Tokenization error for text '%s': %s", text, e)
@@ -153,7 +157,7 @@ class SymptomTextDataset(Dataset):
         return (
             torch.zeros((self.max_length,), dtype=torch.long),
             torch.zeros((self.max_length,), dtype=torch.long),
-            label
+            label,
         )
 
 
@@ -168,7 +172,7 @@ class MultimodalMedicalDataset(Dataset):
         image_transform: Optional[A.Compose] = None,
         tokenizer: Optional[DistilBertTokenizer] = None,
         max_length: int = 64,
-        cache_active: bool = False
+        cache_active: bool = False,
     ) -> None:
         """Initializes the multimodal dataset.
 
@@ -217,7 +221,7 @@ class MultimodalMedicalDataset(Dataset):
         """
         img_path = self.image_paths[idx]
         img_path_str = str(img_path)
-        
+
         # Safe indexing bounds mapping for unaligned datasets
         text = self.symptom_texts[idx % len(self.symptom_texts)]
         label = self.labels[idx % len(self.labels)]
@@ -236,7 +240,9 @@ class MultimodalMedicalDataset(Dataset):
                     augmented = self.image_transform(image=image_np)
                     image_tensor = augmented["image"]
                 else:
-                    image_tensor = torch.tensor(image_np, dtype=torch.float32).permute(2, 0, 1) / 255.0
+                    image_tensor = (
+                        torch.tensor(image_np, dtype=torch.float32).permute(2, 0, 1) / 255.0
+                    )
 
                 if self.cache is not None:
                     self.cache[img_path_str] = image_tensor
@@ -255,7 +261,7 @@ class MultimodalMedicalDataset(Dataset):
                     padding="max_length",
                     truncation=True,
                     max_length=self.max_length,
-                    return_tensors="pt"
+                    return_tensors="pt",
                 )
                 input_ids = encoded["input_ids"].squeeze(0)
                 attention_mask = encoded["attention_mask"].squeeze(0)
@@ -273,7 +279,7 @@ def create_pytorch_dataloader(
     num_workers: int,
     pin_memory: bool,
     persistent_workers: bool,
-    prefetch_factor: Optional[int] = 2
+    prefetch_factor: Optional[int] = 2,
 ) -> DataLoader:
     """Safely constructs a PyTorch DataLoader instance.
 
@@ -307,5 +313,5 @@ def create_pytorch_dataloader(
         num_workers=num_workers,
         pin_memory=pin_memory,
         persistent_workers=safe_persistent,
-        prefetch_factor=safe_prefetch
+        prefetch_factor=safe_prefetch,
     )

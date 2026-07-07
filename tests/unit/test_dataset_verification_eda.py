@@ -150,7 +150,7 @@ def test_verify_image_dataset_missing_folder(mock_eda_config_yaml: Path) -> None
 def test_verify_symptom_dataset(mock_eda_config_yaml: Path, temp_dir: Path) -> None:
     """Verifies symptom CSV profiling reports row/col dims, duplicate count, and missing counts."""
     csv_path = temp_dir / "dataset.csv"
-    
+
     # Generate mock symptoms metadata CSV
     # Missing values: 'age' missing on row 2, 'gender' missing on row 3
     # Row 4 is duplicate of Row 1
@@ -205,7 +205,7 @@ def test_generate_reports(mock_eda_config_yaml: Path, temp_dir: Path) -> None:
         "avg_size_bytes": 10240.0,
         "widths": [100, 100],
         "heights": [100, 100],
-        "aspect_ratios": [1.0, 1.0]
+        "aspect_ratios": [1.0, 1.0],
     }
 
     symptom_stats = {
@@ -215,7 +215,7 @@ def test_generate_reports(mock_eda_config_yaml: Path, temp_dir: Path) -> None:
         "invalid_labels": [],
         "empty_records": 0,
         "missing_values": {"age": 5, "gender": 2},
-        "top_symptoms": {"itching": 50, "cough": 30}
+        "top_symptoms": {"itching": 50, "cough": 30},
     }
 
     verification.generate_reports(img_stats, symptom_stats)
