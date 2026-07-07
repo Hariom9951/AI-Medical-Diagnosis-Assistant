@@ -8,8 +8,7 @@
 #   Stage 2 (runtime)  — copy only the venv + app code.
 #
 # Ports:
-#   8000  FastAPI  (uvicorn)
-#   8501  Streamlit
+#   7860  Streamlit
 # ============================================================
 
 # ─── Stage 1: dependency builder ────────────────────────────
@@ -31,18 +30,18 @@ WORKDIR /build
 # ── Copy only what pip needs first (layer cache optimisation) ─
 COPY requirements.txt .
 
-# Create an isolated venv inside /build/venv and install CPU-only PyTorch + requirements
+# Create an isolated venv inside /opt/venv and install CPU-only PyTorch + requirements
 RUN --mount=type=cache,target=/root/.cache/pip \
-    python -m venv /build/venv && \
-    /build/venv/bin/pip install --upgrade pip wheel setuptools --timeout 120 --retries 5 && \
-    /build/venv/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu --timeout 120 --retries 5 && \
-    /build/venv/bin/pip install -r requirements.txt --timeout 120 --retries 5
+    python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --upgrade pip wheel setuptools --timeout 120 --retries 5 && \
+    /opt/venv/bin/pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu --timeout 120 --retries 5 && \
+    /opt/venv/bin/pip install -r requirements.txt --timeout 120 --retries 5
 
 # ── Pre-download BioBERT base weights into the builder image ──
 # Internet is available during build; we cache the model so the
 # runtime container can run fully offline (TRANSFORMERS_OFFLINE=1).
 ENV HF_HOME=/build/hf_cache
-RUN /build/venv/bin/python - <<'EOF'
+RUN /opt/venv/bin/python - <<'EOF'
 import sys
 from transformers import BertConfig, BertForSequenceClassification, AutoTokenizer
 
@@ -88,7 +87,7 @@ FROM python:3.11-slim AS runtime
 
 LABEL maintainer="Hariom Sharma <hariom9951@github.com>" \
       version="2.0.0" \
-      description="AI Medical Diagnosis Assistant — FastAPI + Streamlit"
+      description="AI Medical Diagnosis Assistant — Streamlit"
 
 # Runtime system libraries (no build tools)
 # libgl1 is required by opencv-python-headless at runtime (links against libGL.so.1)
@@ -104,7 +103,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Copy pre-built venv from builder ────────────────────────
-COPY --from=builder /build/venv /opt/venv
+COPY --from=builder /opt/venv /opt/venv
 
 # ── Copy pre-downloaded HuggingFace model cache from builder ─
 # Allows the runtime container to load dmis-lab/biobert-base-cased-v1.1
@@ -119,7 +118,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
     # Streamlit env tweaks for non-interactive / headless mode
     STREAMLIT_BROWSER_GATHER_USAGE_STATS=false \
     STREAMLIT_SERVER_HEADLESS=true \
-    STREAMLIT_SERVER_PORT=8501 \
+    STREAMLIT_SERVER_PORT=7860 \
     STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
     # Torch — use CPU inside container (no GPU drivers expected)
     CUDA_VISIBLE_DEVICES="" \
@@ -163,11 +162,7 @@ COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
 # ── Expose ports ──────────────────────────────────────────────
-EXPOSE 8000 8501
-
-# ── Docker health-check (polls FastAPI /health endpoint) ──────
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+EXPOSE 7860
 
 # ── Default entrypoint ────────────────────────────────────────
 ENTRYPOINT ["/start.sh"]
