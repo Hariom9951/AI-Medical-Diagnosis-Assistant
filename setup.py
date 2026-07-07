@@ -1,5 +1,6 @@
-from setuptools import find_packages, setup  # type: ignore
 from typing import List
+
+from setuptools import find_packages, setup  # type: ignore
 
 HYPHEN_E_DOT = "-e ."
 

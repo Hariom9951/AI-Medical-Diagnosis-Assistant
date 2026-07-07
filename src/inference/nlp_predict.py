@@ -1,18 +1,14 @@
 from __future__ import annotations
 
 import json
-import re
 import pickle
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from transformers import (
-    BertConfig,
-    BertForSequenceClassification,
-    AutoTokenizer,
-)
+from transformers import AutoTokenizer, BertConfig, BertForSequenceClassification
 
 from src.utils.exceptions import AppInferenceError, AppValidationError
 from src.utils.logger import AppLogger

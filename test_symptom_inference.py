@@ -1,8 +1,9 @@
-import torch
-from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
-import torch.nn.functional as F
 import os
 import pickle
+
+import torch
+import torch.nn.functional as F
+from transformers import DistilBertForSequenceClassification, DistilBertTokenizer
 
 # Configuration - Adjusted to match your directory structure
 BASE_PATH = "/content/drive/MyDrive/AI-Medical-Diagnosis-Assistant/nlp_output"

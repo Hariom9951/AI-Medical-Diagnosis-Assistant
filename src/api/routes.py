@@ -14,6 +14,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile, status
 from fastapi.responses import JSONResponse
 
 from src.api.schemas import (
+    CheckpointInfo,
     ErrorDetail,
     ErrorResponse,
     HealthResponse,
@@ -23,7 +24,6 @@ from src.api.schemas import (
     SymptomRequest,
     TopPrediction,
     VersionResponse,
-    CheckpointInfo,
 )
 from src.api.utils import (
     extract_checkpoint_info,

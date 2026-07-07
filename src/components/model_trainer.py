@@ -21,12 +21,7 @@ import torch
 import torch.nn as nn
 import yaml
 from torch.optim import SGD, Adam, AdamW, Optimizer
-from torch.optim.lr_scheduler import (
-    CosineAnnealingLR,
-    LRScheduler,
-    ReduceLROnPlateau,
-    StepLR,
-)
+from torch.optim.lr_scheduler import CosineAnnealingLR, LRScheduler, ReduceLROnPlateau, StepLR
 from torch.utils.data import DataLoader
 from torchvision import models
 from torchvision.models import EfficientNet_B0_Weights

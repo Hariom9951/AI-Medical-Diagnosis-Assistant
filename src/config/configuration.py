@@ -10,14 +10,15 @@ import logging.config
 import os
 from pathlib import Path
 from typing import Any, Final
+
 import yaml
 from dotenv import load_dotenv
 
 from src.constants import (
     APP_CONFIG_PATH,
+    LOGGING_CONFIG_PATH,
     MODEL_CONFIG_PATH,
     TRAINING_CONFIG_PATH,
-    LOGGING_CONFIG_PATH,
 )
 from src.entity.config_entity import AppConfig, ModelConfig, TrainingConfig
 

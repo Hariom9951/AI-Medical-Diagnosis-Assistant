@@ -22,6 +22,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import streamlit as st
+
 from src.report.pdf_generator import MedicalReportGenerator
 
 # ── Page config (must be first Streamlit call) ──────────────────────────────
@@ -298,7 +299,7 @@ section[data-testid="stSidebar"] .block-container {
 )
 
 import json
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 def get_model_metadata() -> Dict[str, Any]:

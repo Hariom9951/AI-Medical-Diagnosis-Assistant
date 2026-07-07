@@ -4,11 +4,12 @@ Generates visual diagnostic attention maps for image classifier backbones.
 """
 
 from typing import Any, List, Optional, Tuple, Union
-import torch
-import numpy as np
 
+import numpy as np
+import torch
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+
 from src.utils.logger import AppLogger
 
 logger = AppLogger.get_logger(__name__)

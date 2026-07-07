@@ -8,11 +8,11 @@ Orchestrates the entire training flow:
 """
 
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 from src.components.data_ingestion import DataIngestion
-from src.components.data_validation import DataValidation
 from src.components.data_transformation import DataTransformation
+from src.components.data_validation import DataValidation
 from src.components.model_trainer import ImageClassifierTrainer
 from src.utils.logger import AppLogger
 

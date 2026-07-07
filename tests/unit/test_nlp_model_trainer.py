@@ -28,7 +28,6 @@ from src.components.nlp_model_trainer import (
 )
 from src.utils.exceptions import AppValidationError
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Fixtures
 # ─────────────────────────────────────────────────────────────────────────────

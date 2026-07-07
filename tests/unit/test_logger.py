@@ -7,8 +7,9 @@ import logging
 import logging.handlers
 import os
 from pathlib import Path
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 from src.utils.logger import AppLogger, log_exception
 

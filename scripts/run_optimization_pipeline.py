@@ -4,26 +4,26 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
+import mlflow
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import Subset
 import yaml
-import mlflow
+from torch.utils.data import Subset
+from transformers import DistilBertTokenizer
 
 from src.components.data_transformation import DataTransformation
-from src.components.model_trainer import ImageClassifierTrainer, ImageClassifierConfig
+from src.components.model_evaluation import ImageClassifierEvaluator, NLPClassifierEvaluator
+from src.components.model_trainer import ImageClassifierConfig, ImageClassifierTrainer
 from src.components.nlp_model_trainer import (
     NLPClassifierConfig,
     NLPClassifierTrainer,
     NLPTextDataset,
     SymptomDataPreprocessor,
 )
-from src.components.model_evaluation import ImageClassifierEvaluator, NLPClassifierEvaluator
-from src.components.report_generator import PDFReportGenerator
 from src.components.pytorch_dataset import create_pytorch_dataloader
+from src.components.report_generator import PDFReportGenerator
 from src.utils.logger import AppLogger
-from transformers import DistilBertTokenizer
 
 logger = AppLogger.get_logger(__name__)
 

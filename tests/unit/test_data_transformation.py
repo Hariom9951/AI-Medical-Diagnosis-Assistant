@@ -9,11 +9,11 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import albumentations as A
-from albumentations.pytorch import ToTensorV2
 import pandas as pd
 import pytest
 import torch
 import yaml
+from albumentations.pytorch import ToTensorV2
 from PIL import Image
 
 from src.components.data_transformation import (

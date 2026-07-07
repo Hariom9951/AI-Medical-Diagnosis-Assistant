@@ -51,9 +51,9 @@ import matplotlib
 
 matplotlib.use("Agg")  # Non-interactive backend for headless environments
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from sklearn.utils import class_weight as sk_class_weight
-import numpy as np
 
 from src.utils.exceptions import AppStorageError, AppValidationError
 from src.utils.logger import AppLogger

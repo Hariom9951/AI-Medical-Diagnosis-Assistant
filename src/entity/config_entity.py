@@ -5,6 +5,7 @@ structures. These entities correspond to the domain entity layer in clean archit
 """
 
 from pathlib import Path
+
 from pydantic import BaseModel, Field
 
 

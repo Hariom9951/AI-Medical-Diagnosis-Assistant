@@ -45,6 +45,7 @@ def main() -> None:
         logger.info("No checkpoints found. Generating a dummy checkpoint for verification.")
         local_ckpt_dir.mkdir(parents=True, exist_ok=True)
         import torch
+
         from src.components.model_trainer import EfficientNetClassifier
 
         model = EfficientNetClassifier(num_classes=4, freeze_backbone=True, dropout=0.3)

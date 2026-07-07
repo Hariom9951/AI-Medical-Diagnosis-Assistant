@@ -10,10 +10,7 @@ import torch
 from albumentations.pytorch import ToTensorV2
 from PIL import Image
 
-from src.components.model_trainer import (
-    EfficientNetClassifier,
-    ImageClassifierConfig,
-)
+from src.components.model_trainer import EfficientNetClassifier, ImageClassifierConfig
 from src.utils.common import load_best_checkpoint
 from src.utils.exceptions import AppInferenceError, AppValidationError
 from src.utils.logger import AppLogger

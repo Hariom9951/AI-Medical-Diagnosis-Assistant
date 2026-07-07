@@ -14,7 +14,6 @@ from torch.utils.data import DataLoader, Dataset
 from src.components.model_evaluation import ImageClassifierEvaluator
 from src.utils.exceptions import AppStorageError
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Toy Dataset for Testing
 # ─────────────────────────────────────────────────────────────────────────────

@@ -12,7 +12,7 @@ import time
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Final, Dict
+from typing import Any, Dict, Final
 
 import kaggle  # type: ignore[import-untyped]
 import yaml

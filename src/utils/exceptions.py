@@ -5,6 +5,7 @@ Allows clean boundary mapping (e.g., inside FastAPI middleware controllers).
 """
 
 from typing import Any, Final
+
 from src.utils.error_codes import ErrorCode
 
 

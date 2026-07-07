@@ -4,8 +4,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 import mlflow
+
+from src.components.nlp_model_trainer import NLPClassifierConfig, SymptomClassifier
 from src.pipeline.nlp_training_pipeline import NLPTrainingPipeline
-from src.components.nlp_model_trainer import SymptomClassifier, NLPClassifierConfig
 
 
 def main():
