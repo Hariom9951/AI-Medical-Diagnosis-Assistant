@@ -74,5 +74,8 @@ mlflow.db
 .docker/
 docker-compose.override.yml
 
-# === Clinical Data ===
-data/
+data/*
+!data/processed/
+data/processed/*
+!data/processed/disease_mapping.json
+!data/processed/disease_mapping_41.json
