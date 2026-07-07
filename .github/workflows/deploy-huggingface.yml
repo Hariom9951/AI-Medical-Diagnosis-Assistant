@@ -1,0 +1,56 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Sync and Push to Hugging Face Spaces
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Clone Hugging Face Space Repository
+        env:
+          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # Clone the Hugging Face Space git repository using authentication secrets
+          git clone "https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/Hariom51/ai-medical-diagnosis-assistant" hf_space
+
+      - name: Sync Files to Hugging Face Space
+        run: |
+          # Use rsync to copy all files to the space, ignoring metadata and runtimes
+          rsync -av --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='venv/' \
+            --exclude='__pycache__/' \
+            --exclude='.pytest_cache/' \
+            --exclude='.mypy_cache/' \
+            --exclude='.coverage' \
+            --exclude='.env' \
+            --exclude='.gitattributes' \
+            ./ hf_space/
+
+      - name: Commit and Push to Hugging Face Space
+        run: |
+          cd hf_space
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Stage all synced files
+          git add -A
+          
+          # Check for changes to prevent empty commits
+          if git diff-index --quiet HEAD --; then
+            echo "No changes detected. Skipping push."
+          else
+            git commit -m "Deploy to Hugging Face Spaces via GitHub Actions"
+            git push origin main
+          fi
