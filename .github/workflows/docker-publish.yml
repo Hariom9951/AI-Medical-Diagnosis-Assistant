@@ -46,13 +46,19 @@ jobs:
         run: |
           mkdir -p artifacts/checkpoints
           touch artifacts/checkpoints/best_model.pth
-
+          touch artifacts/checkpoints/checkpoint_epoch_050.pth
+          
           mkdir -p artifacts/checkpoints_nlp
+          touch artifacts/checkpoints_nlp/best_model.pt
           touch artifacts/checkpoints_nlp/config.json
           touch artifacts/checkpoints_nlp/pytorch_model.bin
           touch artifacts/checkpoints_nlp/tokenizer_config.json
           touch artifacts/checkpoints_nlp/special_tokens_map.json
           touch artifacts/checkpoints_nlp/vocab.txt
+          touch artifacts/checkpoints_nlp/label_encoder.pkl
+          touch artifacts/checkpoints_nlp/temperature_scaler.json
+          touch artifacts/checkpoints_nlp/clinical_explanations.json
+          touch artifacts/checkpoints_nlp/model_metadata.json
 
           mkdir -p data/processed
           echo '{"COVID": 0, "Lung_Opacity": 1, "Normal": 2, "Viral Pneumonia": 3}' > data/processed/disease_mapping_41.json

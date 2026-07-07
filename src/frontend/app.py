@@ -703,7 +703,7 @@ if "Chest X-ray" in mode:
 
                     pdf_path = report_gen.generate_report(
                         mode="Chest X-ray Diagnosis",
-                        user_input=f"Uploaded Image: {uploaded_file.name}",
+                        user_input=f"Uploaded Image: {st.session_state.current_image_name}",
                         predicted_disease=result["predicted_disease"],
                         confidence=result["confidence"],
                         predictions=predictions_list,

@@ -49,16 +49,25 @@ jobs:
             --exclude='*.pkl' \
             ./ hf_space/
             
-          # Recreate checkpoint folders and write dummy/placeholder files so the Docker build succeeds
+          # Recreate checkpoint folders and write dummy/placeholder files only if they do not exist
           mkdir -p hf_space/artifacts/checkpoints
-          touch hf_space/artifacts/checkpoints/best_model.pth
-          
           mkdir -p hf_space/artifacts/checkpoints_nlp
-          touch hf_space/artifacts/checkpoints_nlp/config.json
-          touch hf_space/artifacts/checkpoints_nlp/pytorch_model.bin
-          touch hf_space/artifacts/checkpoints_nlp/tokenizer_config.json
-          touch hf_space/artifacts/checkpoints_nlp/special_tokens_map.json
-          touch hf_space/artifacts/checkpoints_nlp/vocab.txt
+          
+          # Image model placeholders
+          [ -f hf_space/artifacts/checkpoints/best_model.pth ] || touch hf_space/artifacts/checkpoints/best_model.pth
+          [ -f hf_space/artifacts/checkpoints/checkpoint_epoch_050.pth ] || touch hf_space/artifacts/checkpoints/checkpoint_epoch_050.pth
+          
+          # NLP model placeholders
+          [ -f hf_space/artifacts/checkpoints_nlp/best_model.pt ] || touch hf_space/artifacts/checkpoints_nlp/best_model.pt
+          [ -f hf_space/artifacts/checkpoints_nlp/pytorch_model.bin ] || touch hf_space/artifacts/checkpoints_nlp/pytorch_model.bin
+          [ -f hf_space/artifacts/checkpoints_nlp/config.json ] || touch hf_space/artifacts/checkpoints_nlp/config.json
+          [ -f hf_space/artifacts/checkpoints_nlp/tokenizer_config.json ] || touch hf_space/artifacts/checkpoints_nlp/tokenizer_config.json
+          [ -f hf_space/artifacts/checkpoints_nlp/special_tokens_map.json ] || touch hf_space/artifacts/checkpoints_nlp/special_tokens_map.json
+          [ -f hf_space/artifacts/checkpoints_nlp/vocab.txt ] || touch hf_space/artifacts/checkpoints_nlp/vocab.txt
+          [ -f hf_space/artifacts/checkpoints_nlp/label_encoder.pkl ] || touch hf_space/artifacts/checkpoints_nlp/label_encoder.pkl
+          [ -f hf_space/artifacts/checkpoints_nlp/temperature_scaler.json ] || touch hf_space/artifacts/checkpoints_nlp/temperature_scaler.json
+          [ -f hf_space/artifacts/checkpoints_nlp/clinical_explanations.json ] || touch hf_space/artifacts/checkpoints_nlp/clinical_explanations.json
+          [ -f hf_space/artifacts/checkpoints_nlp/model_metadata.json ] || touch hf_space/artifacts/checkpoints_nlp/model_metadata.json
 
 
       - name: Commit and Push to Hugging Face Space

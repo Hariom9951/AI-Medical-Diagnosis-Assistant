@@ -140,8 +140,8 @@ class NLPInferencePipeline:
         label_encoder_path = resolved_tokenizer / "label_encoder.pkl"
         if label_encoder_path.exists():
             try:
-                with open(label_encoder_path, "rb") as f:
-                    self.label_encoder = pickle.load(f)
+                with open(label_encoder_path, "rb") as f_encoder:
+                    self.label_encoder = pickle.load(f_encoder)
                 self.idx_to_disease = {
                     idx: str(disease) for idx, disease in enumerate(self.label_encoder.classes_)
                 }
@@ -168,8 +168,8 @@ class NLPInferencePipeline:
         self.temperature = 1.0
         if temperature_scaler_path.exists():
             try:
-                with open(temperature_scaler_path, "r", encoding="utf-8") as f:
-                    scaler_data = json.load(f)
+                with open(temperature_scaler_path, "r", encoding="utf-8") as f_scaler:
+                    scaler_data = json.load(f_scaler)
                 self.temperature = float(scaler_data.get("temperature", 1.0))
                 logger.info("Temperature scaler loaded: T=%f", self.temperature)
             except Exception as e:
@@ -299,8 +299,8 @@ class NLPInferencePipeline:
         self.explanations = {}
         if explanations_path.exists():
             try:
-                with open(explanations_path, "r", encoding="utf-8") as f:
-                    self.explanations = json.load(f)
+                with open(explanations_path, "r", encoding="utf-8") as f_explanations:
+                    self.explanations = json.load(f_explanations)
                 logger.info("Loaded clinical explanations registry from: %s", explanations_path)
             except Exception as e:
                 logger.warning("Failed to load clinical explanations registry: %s", e)

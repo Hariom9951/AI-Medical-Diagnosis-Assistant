@@ -1026,7 +1026,7 @@ def plot_source_split(merged_df: pd.DataFrame, plots_dir: Path) -> None:
     labels = [s.replace("_", " ").title() for s in source_counts.index]
 
     fig, ax = plt.subplots(figsize=(7, 7))
-    wedges, texts, autotexts = ax.pie(
+    wedges, texts, autotexts = ax.pie(  # type: ignore[misc]
         source_counts.values,
         labels=labels,
         autopct="%1.1f%%",

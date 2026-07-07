@@ -152,29 +152,40 @@ def load_best_checkpoint(
 
 def download_if_needed(local_path: Union[str, Path], filename: str) -> Path:
     """Helper to check if a model file is missing or a 0-byte placeholder.
-    If so, and we are running in a Hugging Face Space, download it from the Space repo.
+    If so, and we are running in a Hugging Face Space, download it from the HF Hub repository.
+    Supports HF_MODEL_REPO_ID (model repo) or falls back to SPACE_ID (space repo).
     """
     path = Path(local_path)
     if not path.exists() or path.stat().st_size == 0:
-        space_id = os.getenv("SPACE_ID")
-        if space_id:
+        repo_id = os.getenv("HF_MODEL_REPO_ID") or os.getenv("SPACE_ID")
+        if repo_id:
+            repo_type = "model" if os.getenv("HF_MODEL_REPO_ID") else "space"
             logger.info(
-                "Local file %s is missing or 0-byte placeholder. Running inside Space %s. Attempting auto-download...",
+                "Local file %s is missing or 0-byte placeholder. Running inside Space. "
+                "Attempting auto-download from HF %s '%s'...",
                 path,
-                space_id,
+                repo_type,
+                repo_id,
             )
             try:
                 from huggingface_hub import hf_hub_download
 
+                # Remove the 0-byte placeholder file if present to prevent symlink or caching conflicts
+                if path.exists():
+                    try:
+                        path.unlink()
+                    except Exception as rm_err:
+                        logger.debug("Could not remove 0-byte placeholder %s before download: %s", path, rm_err)
+
                 path.parent.mkdir(parents=True, exist_ok=True)
                 downloaded = hf_hub_download(
-                    repo_id=space_id,
-                    repo_type="space",
+                    repo_id=repo_id,
+                    repo_type=repo_type,
                     filename=filename,
                     local_dir=".",
                     token=os.getenv("HF_TOKEN"),
                 )
-                logger.info("Successfully downloaded %s from HF Space to %s", filename, downloaded)
+                logger.info("Successfully downloaded %s from HF to %s", filename, downloaded)
                 return Path(downloaded)
             except Exception as e:
                 logger.error(
@@ -182,7 +193,7 @@ def download_if_needed(local_path: Union[str, Path], filename: str) -> Path:
                 )
         else:
             logger.warning(
-                "Local file %s is missing or 0-byte placeholder and SPACE_ID environment variable is not set.",
+                "Local file %s is missing or 0-byte placeholder, and neither SPACE_ID nor HF_MODEL_REPO_ID is set.",
                 path,
             )
     return path
