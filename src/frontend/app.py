@@ -538,30 +538,50 @@ if "Chest X-ray" in mode:
 
     col_upload, col_preview = st.columns([1, 1])
 
+    import logging
+    app_logger = logging.getLogger("src.frontend.app")
+
     with col_upload:
         uploaded_file = st.file_uploader(
             "Upload Chest X-ray",
             type=["png", "jpg", "jpeg"],
             help="Supported formats: PNG, JPG, JPEG",
             label_visibility="collapsed",
+            key="xray_uploader",
         )
+
+        # Log uploaded file state and cache in session state to prevent state loss
+        if uploaded_file is not None:
+            app_logger.info(
+                "Uploaded file received in frontend: name=%s, size=%d bytes, type=%s",
+                uploaded_file.name,
+                uploaded_file.size,
+                uploaded_file.type,
+            )
+            st.session_state.current_image_bytes = uploaded_file.getvalue()
+            st.session_state.current_image_name = uploaded_file.name
+        else:
+            # If the user cleared the file uploader widget, clear the cache
+            if "xray_uploader" in st.session_state and st.session_state.xray_uploader is None:
+                st.session_state.current_image_bytes = None
+                st.session_state.current_image_name = None
 
         run_image = st.button("🔍  Analyze X-ray", use_container_width=True)
 
     with col_preview:
-        if uploaded_file is not None:
+        if st.session_state.get("current_image_bytes") is not None:
             # If the user uploaded a different image, reset previous results
-            if st.session_state.last_image_name != uploaded_file.name:
+            if st.session_state.last_image_name != st.session_state.current_image_name:
                 st.session_state.image_results = None
                 st.session_state.image_inference_time = None
                 st.session_state.image_report_path = None
                 st.session_state.image_heatmap_img = None
                 st.session_state.image_overlay_img = None
                 st.session_state.image_overlay_path = None
-                st.session_state.last_image_name = uploaded_file.name
+                st.session_state.last_image_name = st.session_state.current_image_name
 
             st.image(
-                uploaded_file,
+                st.session_state.current_image_bytes,
                 caption="Uploaded X-ray",
                 use_container_width=True,
             )
@@ -587,7 +607,7 @@ if "Chest X-ray" in mode:
 
     # ── Run inference ────────────────────────────────────────────────────────
     if run_image:
-        if uploaded_file is None:
+        if st.session_state.get("current_image_bytes") is None:
             st.markdown(
                 """
             <div class="result-card-error">
@@ -599,16 +619,25 @@ if "Chest X-ray" in mode:
         else:
             with st.spinner("Loading image model & running inference..."):
                 try:
+                    app_logger.info("Initializing image inference pipeline...")
                     pipeline = load_image_pipeline()
                     from PIL import Image as PILImage
+                    import io
 
-                    pil_img = PILImage.open(uploaded_file).convert("RGB")
+                    app_logger.info("Preprocessing uploaded image for model prediction...")
+                    pil_img = PILImage.open(io.BytesIO(st.session_state.current_image_bytes)).convert("RGB")
 
                     # Predict
                     start_time = time.perf_counter()
+                    app_logger.info("Executing prediction on the preprocessed image...")
                     result = pipeline.predict(pil_img)
                     end_time = time.perf_counter()
 
+                    app_logger.info(
+                        "Inference complete: Predicted=%s, Confidence=%.4f",
+                        result["predicted_disease"],
+                        result["confidence"],
+                    )
                     st.session_state.image_inference_time = (end_time - start_time) * 1000
                     st.session_state.image_results = result
 

@@ -40,12 +40,24 @@ class ImageInferencePipeline:
                              Defaults to ``artifacts/checkpoints/best_model.pth``.
         """
         logger.info("Initializing Image Inference Pipeline.")
+        
+        # ── Resolve project-relative paths and perform auto-downloads ───────
+        project_root = Path(__file__).resolve().parent.parent.parent
+        
+        # Helper to convert to absolute path using project_root
+        def to_absolute(p: Union[str, Path]) -> Path:
+            p_path = Path(p)
+            if not p_path.is_absolute():
+                return project_root / p_path
+            return p_path
+
+        resolved_config_path = to_absolute(config_path)
         try:
-            self.config = ImageClassifierConfig.from_yaml(Path(config_path))
+            self.config = ImageClassifierConfig.from_yaml(resolved_config_path)
         except Exception as e:
             raise AppValidationError(
                 message=f"Failed to load configuration in inference pipeline: {e}",
-                details={"config_path": str(config_path)},
+                details={"config_path": str(resolved_config_path)},
             )
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -53,6 +65,7 @@ class ImageInferencePipeline:
 
         # Build Model Architecture
         try:
+            logger.info("Building image model architecture...")
             self.model = EfficientNetClassifier(
                 num_classes=self.config.num_classes,
                 freeze_backbone=self.config.freeze_backbone,
@@ -62,56 +75,64 @@ class ImageInferencePipeline:
             raise AppInferenceError(message=f"Failed to build image model architecture: {e}")
 
         # ── Resolve the checkpoint file path ────────────────────────────────
-        # Priority:
-        #   1. Explicit override via checkpoint_path argument.
-        #   2. artifacts/checkpoints/best_model.pth  (canonical name).
-        #   3. The single .pth/.pt file found in artifacts/checkpoints/
-        #      (handles filenames like checkpoint_epoch_050.pth).
+        from src.utils.common import download_if_needed
+        
+        best_ckpt_default = to_absolute(self.BEST_CHECKPOINT)
         if checkpoint_path is not None:
-            resolved_ckpt = Path(checkpoint_path)
-        elif self.BEST_CHECKPOINT.exists():
-            resolved_ckpt = self.BEST_CHECKPOINT
+            resolved_ckpt = to_absolute(checkpoint_path)
+            # Trigger dynamic auto-download if running in HF Space
+            checkpoint_rel_name = "artifacts/checkpoints/" + resolved_ckpt.name
+            resolved_ckpt = download_if_needed(resolved_ckpt, checkpoint_rel_name)
         else:
-            ckpt_dir = self.BEST_CHECKPOINT.parent
-            candidates = list(ckpt_dir.glob("*.pth")) + list(ckpt_dir.glob("*.pt"))
-            if len(candidates) == 1:
-                resolved_ckpt = candidates[0]
-                logger.info(
-                    "best_model.pth not found; using only available checkpoint: %s",
-                    resolved_ckpt.name,
-                )
-            elif len(candidates) > 1:
-                # Pick the one with the lowest val_loss among available checkpoints
-                best = None
-                best_loss = float("inf")
-                for c in candidates:
-                    try:
-                        data = torch.load(c, map_location="cpu", weights_only=False)
-                        loss = data.get("metrics", {}).get("val_loss", float("inf"))
-                        if loss < best_loss:
-                            best_loss = loss
-                            best = c
-                    except Exception:
-                        continue
-                resolved_ckpt = best if best else candidates[-1]
-                logger.info(
-                    "Multiple checkpoints found; selected best by val_loss: %s",
-                    resolved_ckpt.name,
-                )
-            else:
-                raise AppInferenceError(
-                    message=(
-                        "No checkpoint file found in artifacts/checkpoints/.\n"
-                        "Place the trained checkpoint at "
-                        "artifacts/checkpoints/best_model.pth and re-run inference."
-                    ),
-                    details={"checkpoint_dir": str(ckpt_dir)},
-                )
+            resolved_ckpt = best_ckpt_default
+            # Trigger dynamic auto-download if running in HF Space
+            checkpoint_rel_name = "artifacts/checkpoints/" + resolved_ckpt.name
+            resolved_ckpt = download_if_needed(resolved_ckpt, checkpoint_rel_name)
+
+            if not resolved_ckpt.exists() or resolved_ckpt.stat().st_size == 0:
+                ckpt_dir = resolved_ckpt.parent
+                candidates = list(ckpt_dir.glob("*.pth")) + list(ckpt_dir.glob("*.pt"))
+                # Filter out any files that are 0-byte placeholders
+                candidates = [c for c in candidates if c.stat().st_size > 0]
+                if len(candidates) == 1:
+                    resolved_ckpt = candidates[0]
+                    logger.info(
+                        "best_model.pth not found or empty; using only available checkpoint: %s",
+                        resolved_ckpt.name,
+                    )
+                elif len(candidates) > 1:
+                    # Pick the one with the lowest val_loss among available checkpoints
+                    best = None
+                    best_loss = float("inf")
+                    for c in candidates:
+                        try:
+                            data = torch.load(c, map_location="cpu", weights_only=False)
+                            loss = data.get("metrics", {}).get("val_loss", float("inf"))
+                            if loss < best_loss:
+                                best_loss = loss
+                                best = c
+                        except Exception:
+                            continue
+                    resolved_ckpt = best if best else candidates[-1]
+                    logger.info(
+                        "Multiple checkpoints found; selected best by val_loss: %s",
+                        resolved_ckpt.name,
+                    )
+                else:
+                    raise AppInferenceError(
+                        message=(
+                            f"No valid checkpoint file found in {ckpt_dir}.\n"
+                            "Place the trained checkpoint at "
+                            "artifacts/checkpoints/best_model.pth and re-run inference."
+                        ),
+                        details={"checkpoint_dir": str(ckpt_dir)},
+                    )
 
         logger.info("Loading checkpoint: %s", resolved_ckpt)
 
         # ── Load checkpoint directly ─────────────────────────────────────────
         try:
+            logger.info("Loading model weights from checkpoint: %s", resolved_ckpt)
             raw = torch.load(resolved_ckpt, map_location=self.device, weights_only=False)
 
             saved_state = raw["model_state_dict"]
@@ -175,7 +196,7 @@ class ImageInferencePipeline:
 
         # Load preprocessing parameters from transformation config or use defaults
         try:
-            trans_config_path = Path("configs/transformation_config.yaml")
+            trans_config_path = to_absolute("configs/transformation_config.yaml")
             if trans_config_path.exists():
                 import yaml
 

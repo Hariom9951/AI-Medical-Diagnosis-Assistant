@@ -94,8 +94,49 @@ class NLPInferencePipeline:
 
         self.max_length = max_length
 
+        # ── Resolve project-relative paths and perform auto-downloads ───────
+        project_root = Path(__file__).resolve().parent.parent.parent
+        
+        # Helper to convert to absolute path using project_root
+        def to_absolute(p: Union[str, Path]) -> Path:
+            p_path = Path(p)
+            if not p_path.is_absolute():
+                return project_root / p_path
+            return p_path
+
+        resolved_checkpoint = to_absolute(checkpoint_path)
+        resolved_tokenizer = to_absolute(tokenizer_dir)
+        resolved_mapping = to_absolute(disease_mapping_path)
+
+        logger.info(
+            "Resolved NLP Paths: Checkpoint=%s, Tokenizer=%s, Mapping=%s",
+            resolved_checkpoint,
+            resolved_tokenizer,
+            resolved_mapping,
+        )
+
+        # 1. Download checkpoint if missing/0-byte
+        checkpoint_rel_name = "artifacts/checkpoints_nlp/" + resolved_checkpoint.name
+        resolved_checkpoint = download_if_needed(resolved_checkpoint, checkpoint_rel_name)
+
+        # 2. Download tokenizer/helper configs if missing/0-byte
+        tokenizer_files = [
+            "label_encoder.pkl",
+            "temperature_scaler.json",
+            "clinical_explanations.json",
+            "config.json",
+            "tokenizer.json",
+            "tokenizer_config.json",
+            "special_tokens_map.json",
+            "vocab.txt"
+        ]
+        for tf in tokenizer_files:
+            local_tf_path = resolved_tokenizer / tf
+            tf_rel_name = f"artifacts/checkpoints_nlp/{tf}"
+            download_if_needed(local_tf_path, tf_rel_name)
+
         # 1. Load Disease Mapping / Label Encoder
-        label_encoder_path = Path(tokenizer_dir) / "label_encoder.pkl"
+        label_encoder_path = resolved_tokenizer / "label_encoder.pkl"
         if label_encoder_path.exists():
             try:
                 with open(label_encoder_path, "rb") as f:
@@ -112,19 +153,15 @@ class NLPInferencePipeline:
                 )
             except Exception as e:
                 logger.warning("Failed to load label encoder from %s: %s", label_encoder_path, e)
-                self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(
-                    Path(disease_mapping_path)
-                )
+                self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(resolved_mapping)
         else:
-            self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(
-                Path(disease_mapping_path)
-            )
+            self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(resolved_mapping)
 
         num_classes = len(self.disease_to_idx)
         logger.info("Disease mapping initialized: %d classes.", num_classes)
 
         # 2. Load Temperature Scaler
-        temperature_scaler_path = Path(tokenizer_dir) / "temperature_scaler.json"
+        temperature_scaler_path = resolved_tokenizer / "temperature_scaler.json"
         self.temperature = 1.0
         if temperature_scaler_path.exists():
             try:
@@ -137,6 +174,7 @@ class NLPInferencePipeline:
 
         # 3. Reconstruct Model Architecture
         try:
+            logger.info("Reconstructing BioBERT model architecture...")
             config = BertConfig.from_pretrained(
                 model_name,
                 num_labels=num_classes,
@@ -152,13 +190,14 @@ class NLPInferencePipeline:
             )
 
         # 4. Load Checkpoint
-        ckpt_path = Path(checkpoint_path)
+        ckpt_path = resolved_checkpoint
         if not ckpt_path.exists():
             raise AppInferenceError(
                 message=f"NLP checkpoint not found: {ckpt_path}",
                 details={"checkpoint_path": str(ckpt_path)},
             )
 
+        logger.info("Loading model weights from checkpoint: %s", ckpt_path)
         try:
             raw = torch.load(ckpt_path, map_location=self.device, weights_only=False)
         except Exception as e:
@@ -217,7 +256,7 @@ class NLPInferencePipeline:
         self.model = inner_model
 
         # 5. Load Tokenizer
-        tokenizer_path = Path(tokenizer_dir)
+        tokenizer_path = resolved_tokenizer
         if not tokenizer_path.exists():
             raise AppInferenceError(
                 message=f"Tokenizer directory not found: {tokenizer_path}",
@@ -253,7 +292,7 @@ class NLPInferencePipeline:
                 )
 
         # 6. Load Clinical Explanations Registry
-        explanations_path = Path(tokenizer_dir) / "clinical_explanations.json"
+        explanations_path = resolved_tokenizer / "clinical_explanations.json"
         self.explanations = {}
         if explanations_path.exists():
             try:

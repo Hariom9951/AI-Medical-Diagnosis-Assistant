@@ -148,3 +148,39 @@ def load_best_checkpoint(
 
     best_checkpoint_data["checkpoint_path"] = best_checkpoint_path
     return best_checkpoint_data
+
+
+def download_if_needed(local_path: Union[str, Path], filename: str) -> Path:
+    """Helper to check if a model file is missing or a 0-byte placeholder.
+    If so, and we are running in a Hugging Face Space, download it from the Space repo.
+    """
+    path = Path(local_path)
+    if not path.exists() or path.stat().st_size == 0:
+        space_id = os.getenv("SPACE_ID")
+        if space_id:
+            logger.info(
+                "Local file %s is missing or 0-byte placeholder. Running inside Space %s. Attempting auto-download...",
+                path,
+                space_id,
+            )
+            try:
+                from huggingface_hub import hf_hub_download
+                path.parent.mkdir(parents=True, exist_ok=True)
+                downloaded = hf_hub_download(
+                    repo_id=space_id,
+                    repo_type="space",
+                    filename=filename,
+                    local_dir=".",
+                    token=os.getenv("HF_TOKEN"),
+                )
+                logger.info("Successfully downloaded %s from HF Space to %s", filename, downloaded)
+                return Path(downloaded)
+            except Exception as e:
+                logger.error("Auto-download of %s failed: %s. Proceeding with local file check.", filename, e)
+        else:
+            logger.warning(
+                "Local file %s is missing or 0-byte placeholder and SPACE_ID environment variable is not set.",
+                path,
+            )
+    return path
+
