@@ -165,6 +165,7 @@ def download_if_needed(local_path: Union[str, Path], filename: str) -> Path:
             )
             try:
                 from huggingface_hub import hf_hub_download
+
                 path.parent.mkdir(parents=True, exist_ok=True)
                 downloaded = hf_hub_download(
                     repo_id=space_id,
@@ -176,11 +177,12 @@ def download_if_needed(local_path: Union[str, Path], filename: str) -> Path:
                 logger.info("Successfully downloaded %s from HF Space to %s", filename, downloaded)
                 return Path(downloaded)
             except Exception as e:
-                logger.error("Auto-download of %s failed: %s. Proceeding with local file check.", filename, e)
+                logger.error(
+                    "Auto-download of %s failed: %s. Proceeding with local file check.", filename, e
+                )
         else:
             logger.warning(
                 "Local file %s is missing or 0-byte placeholder and SPACE_ID environment variable is not set.",
                 path,
             )
     return path
-

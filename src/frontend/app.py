@@ -386,6 +386,26 @@ def load_nlp_pipeline():
     )
 
 
+def handle_xray_upload_change():
+    """Callback function to handle st.file_uploader upload/clear actions."""
+    import logging
+
+    logger = logging.getLogger("src.frontend.app")
+    uploaded_file = st.session_state.get("xray_uploader")
+    if uploaded_file is not None:
+        logger.info(
+            "xray_uploader callback: new file uploaded name=%s size=%d bytes",
+            uploaded_file.name,
+            uploaded_file.size,
+        )
+        st.session_state.current_image_bytes = uploaded_file.getvalue()
+        st.session_state.current_image_name = uploaded_file.name
+    else:
+        logger.info("xray_uploader callback: file cleared by user.")
+        st.session_state.current_image_bytes = None
+        st.session_state.current_image_name = None
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 
@@ -539,6 +559,7 @@ if "Chest X-ray" in mode:
     col_upload, col_preview = st.columns([1, 1])
 
     import logging
+
     app_logger = logging.getLogger("src.frontend.app")
 
     with col_upload:
@@ -548,23 +569,18 @@ if "Chest X-ray" in mode:
             help="Supported formats: PNG, JPG, JPEG",
             label_visibility="collapsed",
             key="xray_uploader",
+            on_change=handle_xray_upload_change,
         )
 
-        # Log uploaded file state and cache in session state to prevent state loss
-        if uploaded_file is not None:
+        # Log active cache state
+        if st.session_state.get("current_image_bytes") is not None:
             app_logger.info(
-                "Uploaded file received in frontend: name=%s, size=%d bytes, type=%s",
-                uploaded_file.name,
-                uploaded_file.size,
-                uploaded_file.type,
+                "Active image file in session cache: name=%s, size=%d bytes",
+                st.session_state.current_image_name,
+                len(st.session_state.current_image_bytes),
             )
-            st.session_state.current_image_bytes = uploaded_file.getvalue()
-            st.session_state.current_image_name = uploaded_file.name
         else:
-            # If the user cleared the file uploader widget, clear the cache
-            if "xray_uploader" in st.session_state and st.session_state.xray_uploader is None:
-                st.session_state.current_image_bytes = None
-                st.session_state.current_image_name = None
+            app_logger.debug("No active image in session cache.")
 
         run_image = st.button("🔍  Analyze X-ray", use_container_width=True)
 
@@ -621,11 +637,14 @@ if "Chest X-ray" in mode:
                 try:
                     app_logger.info("Initializing image inference pipeline...")
                     pipeline = load_image_pipeline()
-                    from PIL import Image as PILImage
                     import io
 
+                    from PIL import Image as PILImage
+
                     app_logger.info("Preprocessing uploaded image for model prediction...")
-                    pil_img = PILImage.open(io.BytesIO(st.session_state.current_image_bytes)).convert("RGB")
+                    pil_img = PILImage.open(
+                        io.BytesIO(st.session_state.current_image_bytes)
+                    ).convert("RGB")
 
                     # Predict
                     start_time = time.perf_counter()

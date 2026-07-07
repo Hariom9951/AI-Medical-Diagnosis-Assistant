@@ -10,6 +10,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoTokenizer, BertConfig, BertForSequenceClassification
 
+from src.utils.common import download_if_needed
 from src.utils.exceptions import AppInferenceError, AppValidationError
 from src.utils.logger import AppLogger
 
@@ -96,7 +97,7 @@ class NLPInferencePipeline:
 
         # ── Resolve project-relative paths and perform auto-downloads ───────
         project_root = Path(__file__).resolve().parent.parent.parent
-        
+
         # Helper to convert to absolute path using project_root
         def to_absolute(p: Union[str, Path]) -> Path:
             p_path = Path(p)
@@ -128,7 +129,7 @@ class NLPInferencePipeline:
             "tokenizer.json",
             "tokenizer_config.json",
             "special_tokens_map.json",
-            "vocab.txt"
+            "vocab.txt",
         ]
         for tf in tokenizer_files:
             local_tf_path = resolved_tokenizer / tf
@@ -153,7 +154,9 @@ class NLPInferencePipeline:
                 )
             except Exception as e:
                 logger.warning("Failed to load label encoder from %s: %s", label_encoder_path, e)
-                self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(resolved_mapping)
+                self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(
+                    resolved_mapping
+                )
         else:
             self.disease_to_idx, self.idx_to_disease = self._load_disease_mapping(resolved_mapping)
 

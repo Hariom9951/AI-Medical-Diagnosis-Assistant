@@ -40,10 +40,10 @@ class ImageInferencePipeline:
                              Defaults to ``artifacts/checkpoints/best_model.pth``.
         """
         logger.info("Initializing Image Inference Pipeline.")
-        
+
         # ── Resolve project-relative paths and perform auto-downloads ───────
         project_root = Path(__file__).resolve().parent.parent.parent
-        
+
         # Helper to convert to absolute path using project_root
         def to_absolute(p: Union[str, Path]) -> Path:
             p_path = Path(p)
@@ -76,7 +76,7 @@ class ImageInferencePipeline:
 
         # ── Resolve the checkpoint file path ────────────────────────────────
         from src.utils.common import download_if_needed
-        
+
         best_ckpt_default = to_absolute(self.BEST_CHECKPOINT)
         if checkpoint_path is not None:
             resolved_ckpt = to_absolute(checkpoint_path)
