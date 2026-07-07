@@ -31,7 +31,7 @@ jobs:
 
       - name: Sync Files to Hugging Face Space
         run: |
-          # Use rsync to copy all files to the space, ignoring metadata and runtimes
+          # Use rsync to copy all files to the space, excluding model artifacts and LFS metadata
           rsync -av --delete \
             --exclude='.git/' \
             --exclude='.github/' \
@@ -42,7 +42,24 @@ jobs:
             --exclude='.coverage' \
             --exclude='.env' \
             --exclude='.gitattributes' \
+            --exclude='artifacts/checkpoints/' \
+            --exclude='artifacts/checkpoints_nlp/' \
+            --exclude='*.pth' \
+            --exclude='*.pt' \
+            --exclude='*.pkl' \
             ./ hf_space/
+            
+          # Recreate checkpoint folders and write dummy/placeholder files so the Docker build succeeds
+          mkdir -p hf_space/artifacts/checkpoints
+          touch hf_space/artifacts/checkpoints/best_model.pth
+          
+          mkdir -p hf_space/artifacts/checkpoints_nlp
+          touch hf_space/artifacts/checkpoints_nlp/config.json
+          touch hf_space/artifacts/checkpoints_nlp/pytorch_model.bin
+          touch hf_space/artifacts/checkpoints_nlp/tokenizer_config.json
+          touch hf_space/artifacts/checkpoints_nlp/special_tokens_map.json
+          touch hf_space/artifacts/checkpoints_nlp/vocab.txt
+
 
       - name: Commit and Push to Hugging Face Space
         run: |
