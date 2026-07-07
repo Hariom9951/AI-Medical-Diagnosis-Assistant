@@ -22,6 +22,12 @@ jobs:
         run: |
           # Clone the Hugging Face Space git repository using authentication secrets
           git clone "https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/Hariom51/ai-medical-diagnosis-assistant" hf_space
+          
+          # Remove Git LFS tracking, cache and hook before sync
+          cd hf_space
+          git lfs uninstall || true
+          rm -rf .git/lfs
+          rm -f .git/hooks/pre-push
 
       - name: Sync Files to Hugging Face Space
         run: |
@@ -44,6 +50,17 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           
+          # Neutralize Git LFS globally and locally for this step
+          git config --global filter.lfs.clean "cat"
+          git config --global filter.lfs.smudge "cat"
+          git config --global filter.lfs.process "cat"
+          git config --global filter.lfs.required "false"
+          
+          # Remove any potential recreated pre-push LFS hooks
+          git lfs uninstall || true
+          rm -rf .git/lfs
+          rm -f .git/hooks/pre-push
+          
           # Stage all synced files
           git add -A
           
@@ -52,5 +69,5 @@ jobs:
             echo "No changes detected. Skipping push."
           else
             git commit -m "Deploy to Hugging Face Spaces via GitHub Actions"
-            git push origin main
+            git push --no-verify origin main
           fi
