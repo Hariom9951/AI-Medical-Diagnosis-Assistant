@@ -86,7 +86,9 @@ module = [
     "transformers.*",
     "sklearn.*",
     "pytest.*",
-    "pandas.*"
+    "pandas.*",
+    "kaggle.*",
+    "kaggle"
 ]
 ignore_missing_imports = true
 follow_imports = "skip"
