@@ -5,13 +5,33 @@ retry logic, archive decompression, and path traversal security boundary validat
 """
 
 import io
+import sys
 import tarfile
 import zipfile
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 import yaml
+
+# Mock kaggle module if not installed to prevent import/patch errors in CI
+try:
+    import kaggle  # type: ignore[import-not-found,import-untyped]
+except ImportError:
+    kaggle_mock = MagicMock()
+    sys.modules["kaggle"] = kaggle_mock
+    sys.modules["kaggle.api"] = kaggle_mock.api
+    sys.modules["kaggle.api.kaggle_api_extended"] = kaggle_mock.api.kaggle_api_extended
+
+    class KaggleApi:
+        def authenticate(self) -> None:
+            pass
+
+        def dataset_download_files(self, *args, **kwargs) -> None:
+            pass
+
+    kaggle_mock.api.kaggle_api_extended.KaggleApi = KaggleApi
 
 from src.components.data_ingestion import DataIngestion, DataIngestionConfig
 from src.utils.exceptions import AppStorageError, AppValidationError
@@ -88,7 +108,7 @@ def test_download_kaggle_dataset_success(
     """Verifies successful download writes the mock zip target file."""
 
     # Write empty target file on mock call to simulate successful SDK download
-    def download_side_effect(*args: any, **kwargs: any) -> None:
+    def download_side_effect(*args: Any, **kwargs: Any) -> None:
         target = temp_dir / "downloads" / "image-dataset.zip"
         target.write_bytes(b"zipfile_mock_bytes")
 
@@ -153,7 +173,7 @@ def test_download_kaggle_dataset_retries_and_succeeds(
     """Verifies download retries on SDK failures and succeeds if a retry passes."""
     call_count = 0
 
-    def download_side_effect(*args: any, **kwargs: any) -> None:
+    def download_side_effect(*args: Any, **kwargs: Any) -> None:
         nonlocal call_count
         call_count += 1
         if call_count == 1:

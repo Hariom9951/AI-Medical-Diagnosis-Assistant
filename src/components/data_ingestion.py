@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Final
 
-import kaggle  # type: ignore[import-untyped]
 import yaml
 
 from src.utils.exceptions import AppStorageError, AppValidationError
@@ -140,6 +139,14 @@ class DataIngestion:
         Raises:
             AppStorageError: If the download fails consistently after retries.
         """
+        try:
+            import kaggle  # type: ignore[import-untyped]
+        except ImportError as e:
+            raise AppStorageError(
+                message="kaggle package is not installed. Run: pip install kaggle",
+                details={"error": str(e)},
+            )
+
         dataset_name = dataset_slug.split("/")[-1]
         target_zip = self.config.download_dir / f"{dataset_name}.zip"
 
