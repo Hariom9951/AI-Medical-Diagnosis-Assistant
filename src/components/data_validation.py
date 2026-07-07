@@ -369,7 +369,9 @@ class DataValidation:
         csv_results["deleted_invalid_labels"] = invalid_rows_count
 
         # Filter out invalid label rows
-        df = df.loc[~invalid_mask]
+        df_filtered = df.loc[~invalid_mask]
+        assert isinstance(df_filtered, pd.DataFrame)
+        df = df_filtered
 
         # 4. Profile missing cell spaces
         csv_results["null_cells_count"] = int(df.isnull().sum().sum())
