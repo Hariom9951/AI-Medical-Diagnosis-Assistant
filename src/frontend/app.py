@@ -409,7 +409,7 @@ def render_prediction_bar(rank: int, disease: str, confidence: float) -> None:
             unsafe_allow_html=True,
         )
     with col_bar:
-        st.progress(float(confidence))
+        st.progress(confidence)
     with col_pct:
         st.markdown(
             f'<div style="color:{confidence_color(confidence)};font-weight:600;'
@@ -750,8 +750,11 @@ if "Chest X-ray" in mode:
                     # Retrieve the original uploaded image file directly to display
                     from PIL import Image as PILImage
 
-                    pil_img = PILImage.open(uploaded_file)
-                    st.image(pil_img, caption="Original X-ray Scan", use_container_width=True)
+                    if uploaded_file is not None:
+                        pil_img = PILImage.open(uploaded_file)
+                        st.image(pil_img, caption="Original X-ray Scan", use_container_width=True)
+                    else:
+                        st.warning("Please upload the chest X-ray image to preview.")
                 with col_heat:
                     st.image(
                         st.session_state.image_heatmap_img,
@@ -834,7 +837,7 @@ else:
         placeholder="Type your symptoms here (e.g., 'cough, high fever, running nose, shivering...')",
     )
 
-    cleaned_input = symptom_input.strip()
+    cleaned_input = (symptom_input or "").strip()
 
     c1, c2 = st.columns([1, 4])
     with c1:

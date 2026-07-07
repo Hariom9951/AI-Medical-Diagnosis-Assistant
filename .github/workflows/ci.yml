@@ -68,13 +68,14 @@ jobs:
 
       - name: Verify Docker Image Startup & Health Check
         run: |
-          # Run the container in background
-          docker run -d --name test-app -p 8000:8000 ai-medical-diagnosis-assistant:latest
+          # Run the container in background on port 7860
+          docker run -d --name test-app -p 7860:7860 ai-medical-diagnosis-assistant:latest
           
-          # Wait up to 30 seconds for the healthcheck to become healthy (or degraded, which is also 200 OK)
+          # Wait up to 60 seconds for Streamlit to start
           echo "Waiting for app to start..."
-          for i in {1..30}; do
-            if curl -s -f http://localhost:8000/health > /dev/null; then
+          for i in {1..60}; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:7860/_stcore/health || true)
+            if [ "$CODE" = "200" ]; then
               echo "App health endpoint returned HTTP 200!"
               break
             fi
@@ -87,7 +88,19 @@ jobs:
           
           # Verify health status response
           echo "=== Health Endpoint Output ==="
-          curl -s http://localhost:8000/health
+          curl -s http://localhost:7860/_stcore/health
+          echo ""
+          
+          # Verify that http://localhost:7860 returns HTTP 200
+          echo "=== Verifying http://localhost:7860 returns HTTP 200 ==="
+          MAIN_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:7860 || true)
+          echo "HTTP Status Code: $MAIN_CODE"
+          if [ "$MAIN_CODE" != "200" ]; then
+            echo "Error: Streamlit home page did not return HTTP 200!"
+            docker stop test-app
+            docker rm test-app
+            exit 1
+          fi
           
           # Perform cleanup
           docker stop test-app
