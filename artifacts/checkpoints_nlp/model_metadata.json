@@ -1,0 +1,7 @@
+{
+    "model_name": "BioBERT Medical Classifier",
+    "checkpoint": "best_model.pt",
+    "epoch": 4,
+    "validation_accuracy": 96.7,
+    "num_classes": 41
+}

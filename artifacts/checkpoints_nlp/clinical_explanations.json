@@ -1,0 +1,640 @@
+{
+    "Fungal infection": {
+        "specialist": "Dermatologist",
+        "tests": [
+            "Skin scraping microscopy",
+            "Fungal culture",
+            "Wood's lamp examination"
+        ],
+        "emergency_signs": "Spreading redness, severe swelling, throbbing pain, pus drainage, or fever.",
+        "home_care": "Keep the affected skin clean and dry. Avoid sharing towels or personal items.",
+        "lifestyle": "Wear loose, breathable cotton clothes. Shower immediately after sweating.",
+        "similar_diseases": [
+            "Eczema",
+            "Psoriasis",
+            "Contact dermatitis"
+        ]
+    },
+    "GERD": {
+        "specialist": "Gastroenterologist",
+        "tests": [
+            "Upper endoscopy",
+            "Esophageal pH monitoring",
+            "Barium swallow"
+        ],
+        "emergency_signs": "Difficulty swallowing, choking sensations, vomiting blood, or chest pain radiating to arm/jaw.",
+        "home_care": "Eat smaller meals. Avoid lying down for at least 2-3 hours after eating.",
+        "lifestyle": "Limit acidic, spicy, and fatty foods. Elevate the head of your bed during sleep.",
+        "similar_diseases": [
+            "Gastritis",
+            "Esophagitis",
+            "Angina"
+        ]
+    },
+    "Chronic cholestasis": {
+        "specialist": "Hepatologist",
+        "tests": [
+            "Liver function tests (LFTs)",
+            "Abdominal ultrasound",
+            "Serum bile acid assay"
+        ],
+        "emergency_signs": "Severe abdominal pain, confusion, extreme lethargy, or worsening dark urine and pale stools.",
+        "home_care": "Moisturize skin to ease itching. Stay well-hydrated.",
+        "lifestyle": "Avoid alcohol. Eat a balanced low-fat diet enriched with fat-soluble vitamins.",
+        "similar_diseases": [
+            "Jaundice",
+            "Hepatitis",
+            "Gallstones"
+        ]
+    },
+    "Drug Reaction": {
+        "specialist": "Allergist / Dermatologist",
+        "tests": [
+            "Allergy skin prick test",
+            "Complete blood count (CBC)",
+            "Skin biopsy"
+        ],
+        "emergency_signs": "Difficulty breathing, swelling of face/lips, blistered skin rash (Stevens-Johnson syndrome), or high fever.",
+        "home_care": "Immediately stop the suspected offending drug and consult your prescribing physician.",
+        "lifestyle": "Keep a written record of drug allergies and wear a medical alert identifier.",
+        "similar_diseases": [
+            "Hives",
+            "Viral exanthem",
+            "Contact dermatitis"
+        ]
+    },
+    "Peptic ulcer diseae": {
+        "specialist": "Gastroenterologist",
+        "tests": [
+            "H. pylori breath test",
+            "Upper endoscopy",
+            "Stool antigen test"
+        ],
+        "emergency_signs": "Sudden severe abdominal pain, vomiting blood or coffee-ground material, or black tarry stools.",
+        "home_care": "Avoid taking NSAIDs (like ibuprofen or aspirin). Eat small bland meals.",
+        "lifestyle": "Quit smoking and limit alcohol use. Manage psychological stress levels.",
+        "similar_diseases": [
+            "Gastritis",
+            "GERD",
+            "Pancreatitis"
+        ]
+    },
+    "AIDS": {
+        "specialist": "Infectious Disease Specialist",
+        "tests": [
+            "CD4 cell count",
+            "HIV viral load test",
+            "Opportunistic infection screening"
+        ],
+        "emergency_signs": "Severe shortness of breath, unexplained seizures, sudden high fever, or confusion.",
+        "home_care": "Strictly adhere to antiretroviral therapy (ART) schedule. Prevent infections by washing hands.",
+        "lifestyle": "Consume a nutrient-dense diet and maintain safe sex practices.",
+        "similar_diseases": [
+            "Severe combined immunodeficiency",
+            "Lymphoma"
+        ]
+    },
+    "Diabetes ": {
+        "specialist": "Endocrinologist",
+        "tests": [
+            "HbA1c test",
+            "Fasting blood glucose test",
+            "Oral glucose tolerance test"
+        ],
+        "emergency_signs": "Fruity breath odor, rapid breathing, confusion, vomiting, or extremely high/low glucose levels.",
+        "home_care": "Monitor blood glucose regularly. Carry fast-acting glucose tablets for emergencies.",
+        "lifestyle": "Adopt a low-glycemic, fiber-rich diet. Engage in regular physical activity.",
+        "similar_diseases": [
+            "Diabetes insipidus",
+            "Prediabetes",
+            "Metabolic syndrome"
+        ]
+    },
+    "Gastroenteritis": {
+        "specialist": "General Physician",
+        "tests": [
+            "Stool culture",
+            "Electrolyte panel",
+            "Rotavirus stool test"
+        ],
+        "emergency_signs": "Inability to keep liquids down for 24 hours, extreme dizziness, blood in stool, or high fever.",
+        "home_care": "Sip Oral Rehydration Salts (ORS) frequently. Eat plain foods like bananas, rice, applesauce.",
+        "lifestyle": "Wash hands thoroughly with soap. Disinfect contaminated household surfaces.",
+        "similar_diseases": [
+            "Food poisoning",
+            "Irritable Bowel Syndrome (IBS)",
+            "Inflammatory Bowel Disease"
+        ]
+    },
+    "Bronchial Asthma": {
+        "specialist": "Pulmonologist / Allergist",
+        "tests": [
+            "Spirometry",
+            "Peak expiratory flow rate",
+            "Bronchoprovocation challenge"
+        ],
+        "emergency_signs": "Severe wheezing, blue lips/nails, chest tightness where rescue inhaler provides no relief.",
+        "home_care": "Keep your rescue inhaler accessible at all times. Sit upright during an attack.",
+        "lifestyle": "Identify and avoid triggers like pollen, dust mites, pet dander, and cold air.",
+        "similar_diseases": [
+            "COPD",
+            "Bronchitis",
+            "Allergic rhinitis"
+        ]
+    },
+    "Hypertension ": {
+        "specialist": "Cardiologist",
+        "tests": [
+            "Ambulatory blood pressure monitoring",
+            "Electrocardiogram (ECG)",
+            "Urinalysis"
+        ],
+        "emergency_signs": "Severe headache, chest pain, shortness of breath, blurry vision, or sudden weakness/numbness.",
+        "home_care": "Check blood pressure daily. Take prescribed medications exactly as directed.",
+        "lifestyle": "Limit sodium intake to under 1,500mg daily. Exercise regularly and limit alcohol.",
+        "similar_diseases": [
+            "Chronic kidney disease",
+            "Pheochromocytoma",
+            "Hyperaldosteronism"
+        ]
+    },
+    "Migraine": {
+        "specialist": "Neurologist",
+        "tests": [
+            "Brain MRI (to rule out other causes)",
+            "Neurological evaluation"
+        ],
+        "emergency_signs": "Sudden 'thunderclap' headache, fever, neck stiffness, confusion, or difficulty speaking.",
+        "home_care": "Rest in a dark, quiet room. Apply a cool compress to the forehead.",
+        "lifestyle": "Maintain a headache diary. Eat meals and sleep at consistent times every day.",
+        "similar_diseases": [
+            "Tension headache",
+            "Cluster headache",
+            "Sinus headache"
+        ]
+    },
+    "Cervical spondylosis": {
+        "specialist": "Orthopedist / Physiotherapist",
+        "tests": [
+            "Cervical spine X-ray",
+            "Cervical MRI",
+            "Electromyography (EMG)"
+        ],
+        "emergency_signs": "Loss of bladder or bowel control, severe numbness/weakness in arms or legs, or balance issues.",
+        "home_care": "Perform neck stretches regularly. Maintain an ergonomic workspace configuration.",
+        "lifestyle": "Avoid looking down at mobile phones for extended periods. Sleep with a supportive pillow.",
+        "similar_diseases": [
+            "Herniated disc",
+            "Spinal stenosis",
+            "Fibromyalgia"
+        ]
+    },
+    "Paralysis (brain hemorrhage)": {
+        "specialist": "Neurologist / Neurosurgeon",
+        "tests": [
+            "Non-contrast Head CT scan",
+            "Brain MRI",
+            "Coagulation profile"
+        ],
+        "emergency_signs": "FAST signs: Face dropping, Arm weakness, Speech difficulty -> Time to call emergency.",
+        "home_care": "Requires immediate emergency hospital admission. Do not give any food or liquids.",
+        "lifestyle": "Manage high blood pressure carefully. Stop smoking and limit alcohol intake.",
+        "similar_diseases": [
+            "Ischemic stroke",
+            "Transient Ischemic Attack (TIA)",
+            "Brain tumor"
+        ]
+    },
+    "Jaundice": {
+        "specialist": "Hepatologist",
+        "tests": [
+            "Serum bilirubin levels",
+            "Viral hepatitis panel",
+            "Abdominal ultrasound"
+        ],
+        "emergency_signs": "High fever with chills, severe right-sided abdominal pain, confusion, or dark blood in stool.",
+        "home_care": "Stay hydrated and avoid liver-taxing medications like paracetamol/acetaminophen.",
+        "lifestyle": "Eat a light low-fat diet. Completely avoid alcohol consumption.",
+        "similar_diseases": [
+            "Hepatitis",
+            "Cirrhosis",
+            "Hemolytic anemia"
+        ]
+    },
+    "Malaria": {
+        "specialist": "Infectious Disease Specialist",
+        "tests": [
+            "Thick and thin blood smears",
+            "Rapid diagnostic test (RDT)",
+            "Complete blood count (CBC)"
+        ],
+        "emergency_signs": "Confusion, seizures, breathing difficulties, extreme fatigue, or yellowing of the eyes.",
+        "home_care": "Take prescribed antimalarial medications exactly as instructed by a physician.",
+        "lifestyle": "Use mosquito nets, insect repellents, and wear long sleeves during evening hours.",
+        "similar_diseases": [
+            "Dengue fever",
+            "Typhoid fever",
+            "Leptospirosis"
+        ]
+    },
+    "Chicken pox": {
+        "specialist": "Pediatrician / General Physician",
+        "tests": [
+            "Clinical diagnosis",
+            "PCR skin lesion swab",
+            "Varicella-zoster IgM antibody test"
+        ],
+        "emergency_signs": "Rash spreading to eyes, severe cough, extreme drowsiness, or secondary bacterial infection.",
+        "home_care": "Use calamine lotion to soothe itching. Rest and avoid scratching blisters.",
+        "lifestyle": "Quarantine to avoid spreading the virus. Get vaccinated if eligible.",
+        "similar_diseases": [
+            "Measles",
+            "Hand-foot-and-mouth disease",
+            "Hives"
+        ]
+    },
+    "Dengue": {
+        "specialist": "Infectious Disease Specialist",
+        "tests": [
+            "Dengue NS1 antigen test",
+            "Platelet count monitoring",
+            "Dengue IgM/IgG ELISA"
+        ],
+        "emergency_signs": "Severe abdominal pain, persistent vomiting, bleeding gums, blood in vomit, or rapid drop in platelets.",
+        "home_care": "Stay hydrated. Take paracetamol for fever; DO NOT take ibuprofen or aspirin.",
+        "lifestyle": "Eliminate standing water around the home to prevent mosquito breeding.",
+        "similar_diseases": [
+            "Malaria",
+            "Zika virus",
+            "Chikungunya"
+        ]
+    },
+    "Typhoid": {
+        "specialist": "Infectious Disease Specialist",
+        "tests": [
+            "Blood culture",
+            "Widal test (low specificity)",
+            "Stool culture"
+        ],
+        "emergency_signs": "Severe abdominal pain with swelling, blood in stool, persistent high fever, or confusion.",
+        "home_care": "Complete the entire course of prescribed antibiotics. Hydrate using clean, boiled water.",
+        "lifestyle": "Avoid raw foods, street foods, and drinks containing unpurified ice.",
+        "similar_diseases": [
+            "Malaria",
+            "Gastroenteritis",
+            "Typhus"
+        ]
+    },
+    "hepatitis A": {
+        "specialist": "Hepatologist",
+        "tests": [
+            "Hepatitis A IgM antibody test",
+            "Liver function test (LFT)"
+        ],
+        "emergency_signs": "Persistent vomiting, extreme sleepiness, yellowing of skin/eyes, or bleeding issues.",
+        "home_care": "Rest and avoid alcohol. Eat small, frequent meals if nauseous.",
+        "lifestyle": "Practice strict hand hygiene. Get the Hepatitis A vaccine.",
+        "similar_diseases": [
+            "Hepatitis B",
+            "Jaundice",
+            "Epstein-Barr Virus"
+        ]
+    },
+    "Hepatitis B": {
+        "specialist": "Hepatologist",
+        "tests": [
+            "HBsAg screening test",
+            "HBV DNA viral load",
+            "Liver ultrasound"
+        ],
+        "emergency_signs": "Severe abdominal pain, swelling of legs/abdomen, confusion, or dark vomit.",
+        "home_care": "Avoid self-prescribed medications. Keep regular appointments for monitoring.",
+        "lifestyle": "Do not share personal grooming items like razors or toothbrushes.",
+        "similar_diseases": [
+            "Hepatitis C",
+            "Hepatitis A",
+            "Cirrhosis"
+        ]
+    },
+    "Hepatitis C": {
+        "specialist": "Hepatologist",
+        "tests": [
+            "HCV antibody screening",
+            "HCV RNA PCR test",
+            "FibroScan"
+        ],
+        "emergency_signs": "Confusion, sudden high fever, vomiting blood, or swelling in the legs/ankles.",
+        "home_care": "Follow your direct-acting antiviral medication plan. Minimize liver strain.",
+        "lifestyle": "Never share needles or syringes. Get checked for comorbidities.",
+        "similar_diseases": [
+            "Hepatitis B",
+            "Alcoholic liver disease"
+        ]
+    },
+    "Hepatitis D": {
+        "specialist": "Hepatologist",
+        "tests": [
+            "Anti-HDV antibody test",
+            "HDV RNA PCR",
+            "Hepatitis B status check"
+        ],
+        "emergency_signs": "Rapidly worsening jaundice, confusion, severe lethargy, or bruising/bleeding.",
+        "home_care": "Manage Hepatitis B infection since HDV requires HBV to replicate.",
+        "lifestyle": "Avoid any high-risk exposures. Consult a transplant center if severe.",
+        "similar_diseases": [
+            "Hepatitis B coinfection",
+            "Fulminant hepatic failure"
+        ]
+    },
+    "Hepatitis E": {
+        "specialist": "Hepatologist",
+        "tests": [
+            "Hepatitis E IgM test",
+            "HEV RNA in stool/blood"
+        ],
+        "emergency_signs": "Persistent vomiting, extreme drowsiness, yellow eyes, especially critical if pregnant.",
+        "home_care": "Stay hydrated and rest. Avoid pregnancy complications via close monitoring.",
+        "lifestyle": "Drink only safe, boiled or bottled water. Avoid undercooked pork/wild game.",
+        "similar_diseases": [
+            "Hepatitis A",
+            "Jaundice"
+        ]
+    },
+    "Alcoholic hepatitis": {
+        "specialist": "Hepatologist / Gastroenterologist",
+        "tests": [
+            "Liver biopsy",
+            "Complete blood count (CBC)",
+            "Abdominal CT scan"
+        ],
+        "emergency_signs": "Severe abdominal swelling, confusion, vomiting blood, or sudden high fever.",
+        "home_care": "Complete and absolute cessation of alcohol consumption is mandatory.",
+        "lifestyle": "Eat a high-protein, calorie-rich diet under medical guidance.",
+        "similar_diseases": [
+            "NASH",
+            "Cirrhosis",
+            "Viral hepatitis"
+        ]
+    },
+    "Tuberculosis": {
+        "specialist": "Pulmonologist / Infectious Disease Specialist",
+        "tests": [
+            "Sputum smear microscopy",
+            "GeneXpert MTB/RIF test",
+            "Chest X-ray"
+        ],
+        "emergency_signs": "Coughing up large amounts of blood, severe chest pain, or sudden shortness of breath.",
+        "home_care": "Strict adherence to the 6-month anti-TB drug schedule is essential to prevent resistance.",
+        "lifestyle": "Wear a mask to protect others. Ensure good ventilation in living areas.",
+        "similar_diseases": [
+            "Pneumonia",
+            "Lung cancer",
+            "Sarcoidosis"
+        ]
+    },
+    "Common Cold": {
+        "specialist": "General Physician",
+        "tests": [
+            "Clinical diagnosis",
+            "Rapid influenza test (to rule out flu)"
+        ],
+        "emergency_signs": "Difficulty breathing, wheezing, high persistent fever, or severe ear pain.",
+        "home_care": "Stay hydrated, rest, and use saline nasal drops. Take warm liquids.",
+        "lifestyle": "Wash hands frequently. Cover your mouth when coughing or sneezing.",
+        "similar_diseases": [
+            "Influenza",
+            "Allergic rhinitis",
+            "Sinusitis"
+        ]
+    },
+    "Pneumonia": {
+        "specialist": "Pulmonologist",
+        "tests": [
+            "Chest X-ray",
+            "Sputum culture",
+            "Pulse oximetry"
+        ],
+        "emergency_signs": "Difficulty breathing, chest pain when breathing, confusion (especially in elderly), or blue lips.",
+        "home_care": "Complete all prescribed antibiotics. Rest and use a humidifier.",
+        "lifestyle": "Avoid tobacco smoke. Get the pneumococcal vaccine.",
+        "similar_diseases": [
+            "Bronchitis",
+            "Tuberculosis",
+            "Asthma flare-up"
+        ]
+    },
+    "Dimorphic hemmorhoids(piles)": {
+        "specialist": "Proctologist / Colorectal Surgeon",
+        "tests": [
+            "Anoscopy",
+            "Sigmoidoscopy",
+            "Digital rectal examination"
+        ],
+        "emergency_signs": "Severe persistent rectal bleeding, extreme pain, or dizziness/faintness from blood loss.",
+        "home_care": "Take warm sitz baths. Avoid straining during bowel movements.",
+        "lifestyle": "Eat a high-fiber diet, drink plenty of water, and stay active.",
+        "similar_diseases": [
+            "Anal fissure",
+            "Colorectal cancer",
+            "Inflammatory Bowel Disease"
+        ]
+    },
+    "Heart attack": {
+        "specialist": "Cardiologist",
+        "tests": [
+            "12-lead Electrocardiogram (ECG)",
+            "Troponin blood test",
+            "Coronary angiogram"
+        ],
+        "emergency_signs": "Crushing chest pain radiating to arm, neck, or jaw; shortness of breath; sweating; cold clammy skin.",
+        "home_care": "This is a life-threatening emergency. Call ambulance immediately. Chew an aspirin if advised by dispatch.",
+        "lifestyle": "Follow a heart-healthy diet. Avoid smoking and exercise regularly after recovery.",
+        "similar_diseases": [
+            "Angina",
+            "GERD / Heartburn",
+            "Panic attack"
+        ]
+    },
+    "Varicose veins": {
+        "specialist": "Vascular Surgeon",
+        "tests": [
+            "Duplex ultrasound of leg veins",
+            "Visual examination"
+        ],
+        "emergency_signs": "Sudden swelling of one leg, redness, warmth, or chest pain/shortness of breath (signs of DVT/PE).",
+        "home_care": "Wear compression stockings. Elevate legs above heart level when resting.",
+        "lifestyle": "Avoid standing or sitting for long periods. Exercise to improve calf muscle tone.",
+        "similar_diseases": [
+            "Deep Vein Thrombosis (DVT)",
+            "Thrombophlebitis",
+            "Lymphedema"
+        ]
+    },
+    "Hypothyroidism": {
+        "specialist": "Endocrinologist",
+        "tests": [
+            "TSH (Thyroid Stimulating Hormone) test",
+            "Free T4 level"
+        ],
+        "emergency_signs": "Extreme fatigue, confusion, low body temperature, or swelling of the face/tongue.",
+        "home_care": "Take levothyroxine daily on an empty stomach as prescribed by your doctor.",
+        "lifestyle": "Eat a fiber-rich diet to combat constipation. Exercise regularly.",
+        "similar_diseases": [
+            "Depression",
+            "Chronic Fatigue Syndrome",
+            "Anemia"
+        ]
+    },
+    "Hyperthyroidism": {
+        "specialist": "Endocrinologist",
+        "tests": [
+            "TSH, Free T3, and Free T4 tests",
+            "Thyroid scan and radioactive iodine uptake"
+        ],
+        "emergency_signs": "Rapid heart rate (arrhythmia), fever, confusion, vomiting, or extreme agitation (Thyroid Storm).",
+        "home_care": "Monitor heart rate. Take beta-blockers or antithyroid medicines as prescribed.",
+        "lifestyle": "Manage stress, eat calorie-dense foods if losing weight rapidly, and avoid excess iodine.",
+        "similar_diseases": [
+            "Anxiety disorder",
+            "Graves' disease",
+            "Pheochromocytoma"
+        ]
+    },
+    "Hypoglycemia": {
+        "specialist": "Endocrinologist",
+        "tests": [
+            "Blood glucose level monitoring",
+            "Fast-acting glucose challenge"
+        ],
+        "emergency_signs": "Confusion, loss of consciousness, seizures, or inability to swallow safely.",
+        "home_care": "Apply the 15-15 rule: consume 15g fast sugar, wait 15 minutes, check blood glucose.",
+        "lifestyle": "Eat regular, balanced meals. Always carry fast-acting carbohydrates with you.",
+        "similar_diseases": [
+            "Panic attack",
+            "Stroke",
+            "Vasovagal syncope"
+        ]
+    },
+    "Osteoarthristis": {
+        "specialist": "Rheumatologist / Orthopedist",
+        "tests": [
+            "Joint X-ray",
+            "Joint fluid analysis (to rule out infection)"
+        ],
+        "emergency_signs": "Inability to bear weight on the joint, sudden severe swelling, warmth, or redness.",
+        "home_care": "Apply ice packs for swelling and warm packs for stiffness. Use joint supports.",
+        "lifestyle": "Maintain a healthy weight to reduce joint load. Do low-impact exercises like swimming.",
+        "similar_diseases": [
+            "Rheumatoid arthritis",
+            "Gout",
+            "Bursitis"
+        ]
+    },
+    "Arthritis": {
+        "specialist": "Rheumatologist",
+        "tests": [
+            "Rheumatoid Factor (RF) test",
+            "Anti-CCP antibodies",
+            "Erythrocyte sedimentation rate (ESR)"
+        ],
+        "emergency_signs": "High fever accompanied by joint swelling (Septic arthritis), or severe joint pain with chills.",
+        "home_care": "Balance rest with gentle range-of-motion exercises. Use assistive devices.",
+        "lifestyle": "Adopt an anti-inflammatory diet (rich in omega-3). Avoid joint strain.",
+        "similar_diseases": [
+            "Osteoarthritis",
+            "Lupus",
+            "Psoriatic arthritis"
+        ]
+    },
+    "(vertigo) Paroymsal  Positional Vertigo": {
+        "specialist": "ENT Specialist (Otolaryngologist)",
+        "tests": [
+            "Dix-Hallpike maneuver",
+            "Videonystagmography (VNG)"
+        ],
+        "emergency_signs": "Vertigo with double vision, slurred speech, limb weakness, difficulty walking, or chest pain.",
+        "home_care": "Sit down immediately during a vertigo episode. Perform the Epley maneuver under guidance.",
+        "lifestyle": "Avoid sudden neck movements and sleeping flat on your back.",
+        "similar_diseases": [
+            "Meniere's disease",
+            "Labyrinthitis",
+            "Vestibular migraine"
+        ]
+    },
+    "Acne": {
+        "specialist": "Dermatologist",
+        "tests": [
+            "Clinical inspection",
+            "Hormonal panel (if endocrine cause suspected)"
+        ],
+        "emergency_signs": "Extremely painful, deep nodules or cysts with signs of spreading infection/fever.",
+        "home_care": "Wash skin gently twice daily. Avoid squeezing or popping pimples.",
+        "lifestyle": "Use non-comedogenic cosmetics. Wash hair regularly to reduce oils.",
+        "similar_diseases": [
+            "Rosacea",
+            "Folliculitis",
+            "Perioral dermatitis"
+        ]
+    },
+    "Urinary tract infection": {
+        "specialist": "Urologist / General Physician",
+        "tests": [
+            "Urinalysis",
+            "Urine culture and sensitivity"
+        ],
+        "emergency_signs": "High fever, flank/lower back pain, chills, nausea, vomiting (signs of kidney infection).",
+        "home_care": "Drink plenty of water to flush out bacteria. Avoid carbonated/caffeinated drinks.",
+        "lifestyle": "Practice good hygiene. Wipe front to back and urinate after intercourse.",
+        "similar_diseases": [
+            "Interstitual cystitis",
+            "Vaginitis",
+            "Urethritis"
+        ]
+    },
+    "Psoriasis": {
+        "specialist": "Dermatologist",
+        "tests": [
+            "Skin biopsy",
+            "Clinical inspection"
+        ],
+        "emergency_signs": "Pustules all over the body, red skin peeling, chills, fever (Erythrodermic psoriasis emergency).",
+        "home_care": "Apply prescribed emollients regularly. Take warm baths using colloidal oatmeal.",
+        "lifestyle": "Identify and avoid triggers like stress, skin injuries, and smoking.",
+        "similar_diseases": [
+            "Eczema",
+            "Seborrheic dermatitis",
+            "Lichen planus"
+        ]
+    },
+    "Impetigo": {
+        "specialist": "Dermatologist / Pediatrician",
+        "tests": [
+            "Wound swab culture",
+            "Clinical inspection"
+        ],
+        "emergency_signs": "Rash spreading rapidly, red streaks extending from the sores, or high fever.",
+        "home_care": "Keep sores covered with clean gauze. Wash hands thoroughly with soap.",
+        "lifestyle": "Avoid sharing clothes or linens with infected individuals to prevent transmission.",
+        "similar_diseases": [
+            "Ecthyma",
+            "Herpes simplex",
+            "Scabies"
+        ]
+    },
+    "Allergy": {
+        "specialist": "Allergist",
+        "tests": [
+            "Allergy skin prick test",
+            "Specific IgE blood test",
+            "Patch test"
+        ],
+        "emergency_signs": "Difficulty breathing, swelling of face/lips/tongue, hives all over, dizziness, or loss of consciousness (Anaphylaxis).",
+        "home_care": "Avoid known allergens. Take over-the-counter antihistamines as advised by a doctor.",
+        "lifestyle": "Keep windows closed during high pollen seasons. Wash bedding at high temperature. Use air purifiers.",
+        "similar_diseases": [
+            "Common Cold",
+            "Asthma",
+            "Contact dermatitis"
+        ]
+    }
+}

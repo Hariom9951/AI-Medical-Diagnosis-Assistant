@@ -54,6 +54,8 @@ models/*
 !models/.gitkeep
 artifacts/*
 !artifacts/.gitkeep
+!artifacts/checkpoints_nlp/
+!artifacts/checkpoints_nlp/**
 
 # === Streamlit ===
 .streamlit/config.toml
