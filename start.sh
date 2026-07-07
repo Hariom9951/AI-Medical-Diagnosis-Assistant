@@ -37,10 +37,10 @@ python -m streamlit run src/frontend/app.py \
 sleep 2
 
 # ─── 2. Start FastAPI (uvicorn) in foreground as PID 1 ──────
-echo "[START] Launching FastAPI (uvicorn) on port 8000 (PID 1) ..."
+echo "[START] Launching FastAPI (uvicorn) on port ${PORT:-8000} (PID 1) ..."
 exec python -m uvicorn src.api.main:app \
     --host 0.0.0.0 \
-    --port 8000 \
+    --port "${PORT:-8000}" \
     --workers 1 \
     --log-level info \
     --no-access-log
