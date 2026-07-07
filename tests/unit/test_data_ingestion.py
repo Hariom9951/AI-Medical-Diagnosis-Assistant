@@ -100,10 +100,9 @@ def test_config_load_file_not_found() -> None:
     assert "Configuration file not found" in str(excinfo.value)
 
 
-@patch("kaggle.api.kaggle_api_extended.KaggleApi.authenticate")
-@patch("kaggle.api.kaggle_api_extended.KaggleApi.dataset_download_files")
+@patch("kaggle.api")
 def test_download_kaggle_dataset_success(
-    mock_download: MagicMock, mock_auth: MagicMock, valid_config_yaml: Path, temp_dir: Path
+    mock_api: MagicMock, valid_config_yaml: Path, temp_dir: Path
 ) -> None:
     """Verifies successful download writes the mock zip target file."""
 
@@ -112,7 +111,7 @@ def test_download_kaggle_dataset_success(
         target = temp_dir / "downloads" / "image-dataset.zip"
         target.write_bytes(b"zipfile_mock_bytes")
 
-    mock_download.side_effect = download_side_effect
+    mock_api.dataset_download_files.side_effect = download_side_effect
 
     ingestion = DataIngestion(valid_config_yaml)
     zip_path = ingestion.download_kaggle_dataset("username/image-dataset")
@@ -121,16 +120,15 @@ def test_download_kaggle_dataset_success(
     assert zip_path == expected_path
     assert zip_path.exists()
     assert zip_path.read_bytes() == b"zipfile_mock_bytes"
-    mock_auth.assert_called_once()
-    mock_download.assert_called_once_with(
+    mock_api.authenticate.assert_called_once()
+    mock_api.dataset_download_files.assert_called_once_with(
         dataset="username/image-dataset", path=str(temp_dir / "downloads"), unzip=False, quiet=False
     )
 
 
-@patch("kaggle.api.kaggle_api_extended.KaggleApi.authenticate")
-@patch("kaggle.api.kaggle_api_extended.KaggleApi.dataset_download_files")
+@patch("kaggle.api")
 def test_download_kaggle_dataset_idempotence(
-    mock_download: MagicMock, mock_auth: MagicMock, valid_config_yaml: Path, temp_dir: Path
+    mock_api: MagicMock, valid_config_yaml: Path, temp_dir: Path
 ) -> None:
     """Verifies that downloading is skipped if the local target zip already exists."""
     downloads_dir = temp_dir / "downloads"
@@ -142,16 +140,14 @@ def test_download_kaggle_dataset_idempotence(
     zip_path = ingestion.download_kaggle_dataset("username/image-dataset")
 
     assert zip_path == target_zip
-    mock_auth.assert_not_called()
-    mock_download.assert_not_called()
+    mock_api.authenticate.assert_not_called()
+    mock_api.dataset_download_files.assert_not_called()
 
 
-@patch("kaggle.api.kaggle_api_extended.KaggleApi.authenticate")
-def test_download_kaggle_dataset_auth_failure(
-    mock_auth: MagicMock, valid_config_yaml: Path
-) -> None:
+@patch("kaggle.api")
+def test_download_kaggle_dataset_auth_failure(mock_api: MagicMock, valid_config_yaml: Path) -> None:
     """Verifies AppStorageError is raised if Kaggle API authentication fails."""
-    mock_auth.side_effect = Exception("Credentials rejected")
+    mock_api.authenticate.side_effect = Exception("Credentials rejected")
 
     ingestion = DataIngestion(valid_config_yaml)
     with pytest.raises(AppStorageError) as excinfo:
@@ -160,13 +156,11 @@ def test_download_kaggle_dataset_auth_failure(
     assert "Kaggle API authentication failed" in str(excinfo.value)
 
 
-@patch("kaggle.api.kaggle_api_extended.KaggleApi.authenticate")
-@patch("kaggle.api.kaggle_api_extended.KaggleApi.dataset_download_files")
+@patch("kaggle.api")
 @patch("time.sleep")
 def test_download_kaggle_dataset_retries_and_succeeds(
     mock_sleep: MagicMock,
-    mock_download: MagicMock,
-    mock_auth: MagicMock,
+    mock_api: MagicMock,
     valid_config_yaml: Path,
     temp_dir: Path,
 ) -> None:
@@ -182,31 +176,30 @@ def test_download_kaggle_dataset_retries_and_succeeds(
         target = temp_dir / "downloads" / "image-dataset.zip"
         target.write_bytes(b"recovered_zip_bytes")
 
-    mock_download.side_effect = download_side_effect
+    mock_api.dataset_download_files.side_effect = download_side_effect
 
     ingestion = DataIngestion(valid_config_yaml)
     zip_path = ingestion.download_kaggle_dataset("username/image-dataset")
 
     assert zip_path.read_bytes() == b"recovered_zip_bytes"
-    assert mock_download.call_count == 2
+    assert mock_api.dataset_download_files.call_count == 2
     mock_sleep.assert_called_once()
 
 
-@patch("kaggle.api.kaggle_api_extended.KaggleApi.authenticate")
-@patch("kaggle.api.kaggle_api_extended.KaggleApi.dataset_download_files")
+@patch("kaggle.api")
 @patch("time.sleep")
 def test_download_kaggle_dataset_all_retries_fail(
-    mock_sleep: MagicMock, mock_download: MagicMock, mock_auth: MagicMock, valid_config_yaml: Path
+    mock_sleep: MagicMock, mock_api: MagicMock, valid_config_yaml: Path
 ) -> None:
     """Verifies AppStorageError is raised when all download attempts fail."""
-    mock_download.side_effect = Exception("Kaggle Connection Error")
+    mock_api.dataset_download_files.side_effect = Exception("Kaggle Connection Error")
 
     ingestion = DataIngestion(valid_config_yaml)
     with pytest.raises(AppStorageError) as excinfo:
         ingestion.download_kaggle_dataset("username/image-dataset")
 
     assert "Failed to download dataset" in str(excinfo.value)
-    assert mock_download.call_count == 2
+    assert mock_api.dataset_download_files.call_count == 2
 
 
 def test_extract_zip_success(valid_config_yaml: Path, temp_dir: Path) -> None:

@@ -209,7 +209,7 @@ class DataValidation:
                 )
                 images_subfolder = folder
 
-            class_files = [p for p in images_subfolder.glob("**/*") if p.is_file()]
+            class_files = sorted([p for p in images_subfolder.glob("**/*") if p.is_file()])
 
             img_results["class_distribution"][class_name] = 0
 
