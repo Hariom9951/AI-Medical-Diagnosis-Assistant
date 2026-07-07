@@ -42,8 +42,8 @@ tokenizer_name: "distilbert-base-uncased"
 dropout: 0.2
 max_length: 8
 
-validated_symptoms_csv: "{str(csv_path).replace('\\', '/')}"
-disease_mapping_file: "{str(mapping_path).replace('\\', '/')}"
+validated_symptoms_csv: "{csv_path.as_posix()}"
+disease_mapping_file: "{mapping_path.as_posix()}"
 
 train_split: 0.50
 val_split: 0.25
@@ -65,10 +65,10 @@ early_stopping_patience: 2
 early_stopping_min_delta: 0.001
 max_grad_norm: 1.0
 
-checkpoint_dir: "{str(checkpoint_dir).replace('\\', '/')}"
-best_model_path: "{str(checkpoint_dir / 'best_model.pth').replace('\\', '/')}"
+checkpoint_dir: "{checkpoint_dir.as_posix()}"
+best_model_path: "{(checkpoint_dir / 'best_model.pth').as_posix()}"
 
-mlflow_tracking_uri: "sqlite:///{str(temp_dir / 'mlflow.db').replace('\\', '/')}"
+mlflow_tracking_uri: "sqlite:///{(temp_dir / 'mlflow.db').as_posix()}"
 mlflow_experiment_name: "test-pipeline-experiment"
 """
     cfg_file = temp_dir / "nlp_training_config.yaml"
