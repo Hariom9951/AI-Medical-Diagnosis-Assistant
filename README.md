@@ -1,3 +1,13 @@
+---
+title: AI Medical Diagnosis Assistant
+emoji: 🩺
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # AI Medical Diagnosis Assistant
 
 [![CI/CD Pipeline](https://github.com/Hariom9951/AI-Medical-Diagnosis-Assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/Hariom9951/AI-Medical-Diagnosis-Assistant/actions/workflows/ci.yml)
