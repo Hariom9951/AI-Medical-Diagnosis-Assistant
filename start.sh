@@ -22,6 +22,10 @@ echo "[ENV]   Python  : $(python --version 2>&1)"
 echo "[ENV]   PATH    : $PATH"
 echo ""
 
+echo "[DIAG] Running startup diagnostics..."
+python scripts/diagnostics.py
+echo ""
+
 # ─── Start Streamlit only ────────────────────────
 echo "[START] Launching Streamlit on port ${PORT:-7860} ..."
 exec streamlit run src/frontend/app.py \

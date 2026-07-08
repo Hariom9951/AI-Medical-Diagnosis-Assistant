@@ -71,7 +71,8 @@ notebooks/
 docs/
 
 # ── Scripts (training / EDA — not needed at runtime) ────────
-scripts/
+scripts/*
+!scripts/diagnostics.py
 
 # ── Raw training data (large; not needed for inference) ──────
 data/raw/

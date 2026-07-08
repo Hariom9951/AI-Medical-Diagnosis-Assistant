@@ -135,6 +135,7 @@ WORKDIR /app
 # ── Copy project source code ─────────────────────────────────
 COPY src/           ./src/
 COPY configs/       ./configs/
+COPY scripts/       ./scripts/
 COPY setup.py       .
 COPY pyproject.toml .
 COPY requirements.txt .
