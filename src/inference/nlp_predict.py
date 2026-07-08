@@ -116,9 +116,15 @@ class NLPInferencePipeline:
             resolved_mapping,
         )
 
+        # Initialize label_encoder attribute with Any type to satisfy mypy
+        self.label_encoder: Any = None
+
         # 1. Download checkpoint if missing/0-byte
         checkpoint_rel_name = "artifacts/checkpoints_nlp/" + resolved_checkpoint.name
-        resolved_checkpoint = download_if_needed(resolved_checkpoint, checkpoint_rel_name)
+        downloaded_ckpt = download_if_needed(resolved_checkpoint, checkpoint_rel_name)
+        if downloaded_ckpt is None:
+            raise AppInferenceError("NLP checkpoint path resolved to None.")
+        resolved_checkpoint = downloaded_ckpt
 
         # 2. Download tokenizer/helper configs if missing/0-byte
         tokenizer_files = [

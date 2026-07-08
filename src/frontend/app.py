@@ -386,26 +386,6 @@ def load_nlp_pipeline():
     )
 
 
-def handle_xray_upload_change():
-    """Callback function to handle st.file_uploader upload/clear actions."""
-    import logging
-
-    logger = logging.getLogger("src.frontend.app")
-    uploaded_file = st.session_state.get("xray_uploader")
-    if uploaded_file is not None:
-        logger.info(
-            "xray_uploader callback: new file uploaded name=%s size=%d bytes",
-            uploaded_file.name,
-            uploaded_file.size,
-        )
-        st.session_state.current_image_bytes = uploaded_file.getvalue()
-        st.session_state.current_image_name = uploaded_file.name
-    else:
-        logger.info("xray_uploader callback: file cleared by user.")
-        st.session_state.current_image_bytes = None
-        st.session_state.current_image_name = None
-
-
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 
@@ -569,8 +549,14 @@ if "Chest X-ray" in mode:
             help="Supported formats: PNG, JPG, JPEG",
             label_visibility="collapsed",
             key="xray_uploader",
-            on_change=handle_xray_upload_change,
         )
+
+        if uploaded_file is not None:
+            st.session_state.current_image_bytes = uploaded_file.getvalue()
+            st.session_state.current_image_name = uploaded_file.name
+        else:
+            st.session_state.current_image_bytes = None
+            st.session_state.current_image_name = None
 
         # Log active cache state
         if st.session_state.get("current_image_bytes") is not None:
@@ -640,6 +626,13 @@ if "Chest X-ray" in mode:
                     import io
 
                     from PIL import Image as PILImage
+
+                    image_size = len(st.session_state.current_image_bytes)
+                    app_logger.info(
+                        "Uploaded image size: %d bytes (name: %s)",
+                        image_size,
+                        st.session_state.current_image_name,
+                    )
 
                     app_logger.info("Preprocessing uploaded image for model prediction...")
                     pil_img = PILImage.open(
@@ -795,11 +788,13 @@ if "Chest X-ray" in mode:
                 # Show 3 columns: Original, Heatmap, Overlay
                 col_orig, col_heat, col_over = st.columns(3)
                 with col_orig:
-                    # Retrieve the original uploaded image file directly to display
+                    # Retrieve the original uploaded image file directly from session state
+                    import io
+
                     from PIL import Image as PILImage
 
-                    if uploaded_file is not None:
-                        pil_img = PILImage.open(uploaded_file)
+                    if st.session_state.get("current_image_bytes") is not None:
+                        pil_img = PILImage.open(io.BytesIO(st.session_state.current_image_bytes))
                         st.image(pil_img, caption="Original X-ray Scan", use_container_width=True)
                     else:
                         st.warning("Please upload the chest X-ray image to preview.")

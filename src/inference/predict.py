@@ -82,12 +82,18 @@ class ImageInferencePipeline:
             resolved_ckpt = to_absolute(checkpoint_path)
             # Trigger dynamic auto-download if running in HF Space
             checkpoint_rel_name = "artifacts/checkpoints/" + resolved_ckpt.name
-            resolved_ckpt = download_if_needed(resolved_ckpt, checkpoint_rel_name)
+            downloaded_ckpt = download_if_needed(resolved_ckpt, checkpoint_rel_name)
+            if downloaded_ckpt is None:
+                raise AppInferenceError("Image checkpoint path resolved to None.")
+            resolved_ckpt = downloaded_ckpt
         else:
             resolved_ckpt = best_ckpt_default
             # Trigger dynamic auto-download if running in HF Space
             checkpoint_rel_name = "artifacts/checkpoints/" + resolved_ckpt.name
-            resolved_ckpt = download_if_needed(resolved_ckpt, checkpoint_rel_name)
+            downloaded_ckpt = download_if_needed(resolved_ckpt, checkpoint_rel_name)
+            if downloaded_ckpt is None:
+                raise AppInferenceError("Image checkpoint path resolved to None.")
+            resolved_ckpt = downloaded_ckpt
 
             if not resolved_ckpt.exists() or resolved_ckpt.stat().st_size == 0:
                 ckpt_dir = resolved_ckpt.parent
