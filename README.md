@@ -95,18 +95,22 @@ sequenceDiagram
 
 ## 📸 Interface Screenshots
 
-| Chest X-ray Mode | Symptom Diagnosis Mode |
-|---|---|
-| ![X-ray Analysis Placeholder](https://raw.githubusercontent.com/Hariom9951/AI-Medical-Diagnosis-Assistant/main/image/xray_tab_preview.png) | ![Symptom Analysis Placeholder](https://raw.githubusercontent.com/Hariom9951/AI-Medical-Diagnosis-Assistant/main/image/symptom_tab_preview.png) |
-
-*(Note: Screen captures can be updated inside the `/image` directory of your repository).*
+| Screen Description | Image Preview |
+| :--- | :--- |
+| **Home Portal & Welcome Screen** | <img src="images/Home%20page.png" alt="Home Page" width="500"/> |
+| **Chest X-ray Upload Interface** | <img src="images/Chest%20X-ray%20upload.png" alt="X-ray Upload" width="500"/> |
+| **Chest X-ray Diagnostic Predictions** | <img src="images/Chest%20X-ray%20prediction.png" alt="X-ray Prediction" width="500"/> |
+| **Grad-CAM Focus Overlay Interpretation** | <img src="images/Grad-CAM%20visualization.png" alt="Grad-CAM Visualization" width="500"/> |
+| **Symptom Diagnosis Input Workspace** | <img src="images/Symptom%20diagnosis%20upload.png" alt="Symptom Upload" width="500"/> |
+| **Symptom Diagnostic Classifications** | <img src="images/Symptom%20diagnosis%20prediction.png" alt="Symptom Prediction" width="500"/> |
+| **Symptom Diagnosis Explanation & Clinical Guidance** | <img src="images/Symptom%20diagnosis%20Clinical%20Explanation%20%26%20Guidance.png" alt="Clinical Advice" width="500"/> |
 
 ---
 
 ## 🎥 Application Demo (GIF)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Hariom9951/AI-Medical-Diagnosis-Assistant/main/image/demo.gif" alt="App Walkthrough Demonstration" width="800" />
+  <img src="images/demo.gif" alt="App Walkthrough Demonstration" width="900" />
 </p>
 
 ---
