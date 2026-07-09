@@ -269,7 +269,7 @@ class ImageClassifierEvaluator:
             title (str): Header title for the plot.
         """
         fig, ax = plt.subplots(figsize=(6, 5))
-        im = ax.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+        im = ax.imshow(cm, interpolation="nearest", cmap="Blues")
         ax.figure.colorbar(im, ax=ax)
 
         ax.set(
@@ -591,7 +591,7 @@ class NLPClassifierEvaluator:
         cm = confusion_matrix(y_true, y_prob.argmax(axis=1))
 
         plt.figure(figsize=(10, 8))
-        im = plt.imshow(cm, interpolation="nearest", cmap=plt.cm.Blues)
+        im = plt.imshow(cm, interpolation="nearest", cmap="Blues")
         plt.colorbar(im)
         plt.title("NLP Symptom Classifier Confusion Matrix")
         plt.ylabel("True label")

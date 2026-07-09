@@ -280,19 +280,20 @@ class ImageInferencePipeline:
                     raise AppValidationError(message=f"Input image file does not exist: {img_path}")
                 with Image.open(img_path) as pil_img:
                     image_np = np.array(pil_img.convert("RGB"))
-            elif isinstance(image_input, io.IOBase):
-                # File-like object (BytesIO, UploadedFile, etc.)
-                if hasattr(image_input, "seek"):
-                    try:
-                        image_input.seek(0)  # type: ignore[union-attr]
-                    except Exception:
-                        pass
-                with Image.open(image_input) as pil_img:  # type: ignore[arg-type]
-                    image_np = np.array(pil_img.convert("RGB"))
             else:
-                raise AppValidationError(
-                    message=f"Unsupported image input type: {type(image_input)}"
-                )
+                # File-like object (BytesIO, UploadedFile, etc. falling under IO[bytes])
+                if hasattr(image_input, "read"):
+                    if hasattr(image_input, "seek"):
+                        try:
+                            image_input.seek(0)
+                        except Exception:
+                            pass
+                    with Image.open(image_input) as pil_img:
+                        image_np = np.array(pil_img.convert("RGB"))
+                else:
+                    raise AppValidationError(
+                        message=f"Unsupported image input type: {type(image_input)}"
+                    )
 
             # 2. Apply validation transforms
             augmented = self.transform(image=image_np)
