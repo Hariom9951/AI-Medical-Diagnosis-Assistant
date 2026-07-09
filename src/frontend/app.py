@@ -12,6 +12,7 @@ Run from project root:
     .\\venv\\Scripts\\streamlit run src/frontend/app.py
 """
 
+import io
 import sys
 import time
 from pathlib import Path
@@ -551,15 +552,14 @@ if "Chest X-ray" in mode:
             key="xray_uploader",
         )
 
-        # Retrieve active file from direct return or session state backup
-        active_uploaded_file = uploaded_file or st.session_state.get("xray_uploader")
-
-        if active_uploaded_file is not None:
-            st.session_state.current_image_bytes = active_uploaded_file.getvalue()
-            st.session_state.current_image_name = active_uploaded_file.name
-        else:
-            st.session_state.current_image_bytes = None
-            st.session_state.current_image_name = None
+        if uploaded_file is not None:
+            st.session_state.current_image_bytes = uploaded_file.getvalue()
+            st.session_state.current_image_name = uploaded_file.name
+        # NOTE: do NOT clear session state if uploaded_file is None on re-run.
+        # Streamlit re-runs the script on every interaction (including button clicks),
+        # and st.file_uploader returns None during those re-runs unless the user actively
+        # changed the selected file. Clearing here would wipe the image on the same run
+        # that the Analyze button is pressed, causing the "No image uploaded" error.
 
         # Log active cache state
         if st.session_state.get("current_image_bytes") is not None:
@@ -626,7 +626,6 @@ if "Chest X-ray" in mode:
                 try:
                     app_logger.info("Initializing image inference pipeline...")
                     pipeline = load_image_pipeline()
-                    import io
 
                     from PIL import Image as PILImage
 
@@ -642,10 +641,10 @@ if "Chest X-ray" in mode:
                         io.BytesIO(st.session_state.current_image_bytes)
                     ).convert("RGB")
 
-                    # Predict
+                    # Predict using the already-decoded PIL image
                     start_time = time.perf_counter()
                     app_logger.info("Executing prediction on the preprocessed image...")
-                    result = pipeline.predict(active_uploaded_file)
+                    result = pipeline.predict(pil_img)
                     end_time = time.perf_counter()
 
                     app_logger.info(
@@ -673,7 +672,7 @@ if "Chest X-ray" in mode:
                         pred_idx = pipeline.CLASSES.index(pred_disease)
 
                         # Generate heatmap using preprocessed tensor
-                        img_tensor = pipeline.preprocess(active_uploaded_file)
+                        img_tensor = pipeline.preprocess(pil_img)
                         explainer = GradCAMExplainer(model=pipeline.model)
                         heatmap = explainer.generate_heatmap(img_tensor, target_class_idx=pred_idx)
 

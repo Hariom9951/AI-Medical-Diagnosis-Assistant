@@ -1,8 +1,9 @@
 """Production-ready inference pipeline for the Image Model."""
 
+import io
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import IO, Any, Dict, Optional, Union
 
 import albumentations as A
 import numpy as np
@@ -236,47 +237,58 @@ class ImageInferencePipeline:
             "Image preprocessing transforms initialized successfully (size=%d).", self.image_size
         )
 
-    def preprocess(self, image_input: Union[str, Path, Image.Image, np.ndarray]) -> torch.Tensor:
+    def preprocess(
+        self,
+        image_input: Union[str, Path, "Image.Image", np.ndarray, bytes, IO[bytes]],
+    ) -> torch.Tensor:
         """Preprocesses the input image according to validation requirements.
 
         Args:
-            image_input: Path to the image, a PIL Image, or a NumPy array.
+            image_input: Accepted types:
+                - str or Path: filesystem path to the image file.
+                - PIL.Image.Image: already-decoded PIL image.
+                - np.ndarray: HxWxC or HxW uint8 array.
+                - bytes: raw image bytes (e.g., from st.session_state).
+                - IO[bytes]: file-like object (e.g., BytesIO, UploadedFile).
 
         Returns:
             torch.Tensor: Preprocessed image tensor of shape [1, 3, H, W] mapped to target device.
         """
         try:
-            # 1. Load image if path is passed
-            if isinstance(image_input, (str, Path)):
+            # 1. Normalise input to a numpy RGB array
+            if isinstance(image_input, np.ndarray):
+                # numpy array — ensure 3 channels
+                if image_input.ndim == 2:
+                    # Grayscale → RGB
+                    image_np: np.ndarray = np.stack([image_input] * 3, axis=-1)
+                elif image_input.ndim == 3 and image_input.shape[2] == 4:
+                    # RGBA → RGB
+                    image_np = image_input[:, :, :3]
+                else:
+                    image_np = image_input
+            elif isinstance(image_input, Image.Image):
+                # PIL image
+                image_np = np.array(image_input.convert("RGB"))
+            elif isinstance(image_input, bytes):
+                # Raw bytes — wrap in BytesIO and decode
+                with Image.open(io.BytesIO(image_input)) as pil_img:
+                    image_np = np.array(pil_img.convert("RGB"))
+            elif isinstance(image_input, (str, Path)):
+                # Filesystem path
                 img_path = Path(image_input)
                 if not img_path.exists():
                     raise AppValidationError(message=f"Input image file does not exist: {img_path}")
                 with Image.open(img_path) as pil_img:
-                    rgb_img = pil_img.convert("RGB")
-                    image_np = np.array(rgb_img)
-            elif isinstance(image_input, Image.Image):
-                rgb_img = image_input.convert("RGB")
-                image_np = np.array(rgb_img)
-            elif hasattr(image_input, "read") or hasattr(image_input, "getvalue"):
-                # Handle file-like objects (e.g., Streamlit UploadedFile, BytesIO)
+                    image_np = np.array(pil_img.convert("RGB"))
+            elif isinstance(image_input, io.IOBase):
+                # File-like object (BytesIO, UploadedFile, etc.)
                 if hasattr(image_input, "seek"):
                     try:
-                        image_input.seek(0)
+                        image_input.seek(0)  # type: ignore[union-attr]
                     except Exception:
                         pass
-                with Image.open(image_input) as pil_img:
-                    rgb_img = pil_img.convert("RGB")
-                    image_np = np.array(rgb_img)
-            elif isinstance(image_input, np.ndarray):
-                # Ensure it has 3 channels
-                if len(image_input.shape) == 2:
-                    # Grayscale to RGB
-                    image_np = np.stack([image_input] * 3, axis=-1)
-                elif len(image_input.shape) == 3 and image_input.shape[2] == 4:
-                    # RGBA to RGB
-                    image_np = image_input[:, :, :3]
-                else:
-                    image_np = image_input
+                with Image.open(image_input) as pil_img:  # type: ignore[arg-type]
+                    image_np = np.array(pil_img.convert("RGB"))
             else:
                 raise AppValidationError(
                     message=f"Unsupported image input type: {type(image_input)}"
@@ -294,7 +306,10 @@ class ImageInferencePipeline:
                 raise e
             raise AppValidationError(message=f"Failed to preprocess image input: {e}")
 
-    def predict(self, image_input: Union[str, Path, Image.Image, np.ndarray]) -> Dict[str, Any]:
+    def predict(
+        self,
+        image_input: Union[str, Path, "Image.Image", np.ndarray, bytes, IO[bytes]],
+    ) -> Dict[str, Any]:
         """Performs disease prediction on a single medical image scan.
 
         Args:
