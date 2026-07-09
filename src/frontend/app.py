@@ -38,10 +38,10 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
+/* Safe system-font stack — no external request, compatible with HF Spaces CSP */
 html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+                 Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 /* Dark gradient background */
@@ -573,8 +573,6 @@ if "Chest X-ray" in mode:
                     st.session_state.current_image_bytes = None
                     st.session_state.current_image_name = None
                     st.session_state.xray_image = None
-
-
 
         # Log active cache state
         if st.session_state.get("xray_image") is not None:
