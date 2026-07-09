@@ -57,7 +57,7 @@ def tmp_project(tmp_path: Path) -> Generator[Path, None, None]:
 def downloader(tmp_project: Path) -> ModelDownloader:
     """Returns a ModelDownloader with the project root pointing at tmp_project."""
     dl = ModelDownloader(
-        repo_id="Hariom9951/AI-Medical-Diagnosis-Models",
+        repo_id="Hariom51/AI-Medical-Diagnosis-Models",
         max_retries=1,
         backoff_factor=0.0,
     )
@@ -74,7 +74,7 @@ class TestModelDownloaderInit:
     def test_default_repo_id(self) -> None:
         """Default repo_id must point at the production model repository."""
         dl = ModelDownloader()
-        assert dl.repo_id == "Hariom9951/AI-Medical-Diagnosis-Models"
+        assert dl.repo_id == "Hariom51/AI-Medical-Diagnosis-Models"
 
     def test_env_override(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """HF_MODEL_REPO_ID env variable overrides the default repo_id."""
@@ -132,23 +132,6 @@ class TestCacheHitSkipsDownload:
                 mock_dl.assert_not_called()
                 mock_verify.assert_called_once()
 
-
-class TestOfflineMode:
-    """Tests for offline mode behaviour."""
-
-    def test_offline_mode_raises_if_file_missing(
-        self, tmp_project: Path, downloader: ModelDownloader, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """If offline mode is active and the file doesn't exist, raise AppStorageError."""
-        monkeypatch.setenv("TRANSFORMERS_OFFLINE", "1")
-        repo_path = "image/best_model.pth"
-        local_path = tmp_project / "artifacts" / "checkpoints" / "best_model.pth"
-        # Ensure file does NOT exist
-        if local_path.exists():
-            local_path.unlink()
-
-        with pytest.raises(AppStorageError, match="Offline mode active"):
-            downloader.download_file(repo_path, local_path)
 
 
 class TestDownloadWithMock:

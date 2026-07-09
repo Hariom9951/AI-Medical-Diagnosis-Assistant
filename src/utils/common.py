@@ -160,11 +160,18 @@ def download_if_needed(local_path: Union[str, Path], filename: str) -> Path:
     from src.utils.downloader import ModelDownloader
 
     repo_path = filename
-    # Map old repo structure to the new logical layout
-    if filename.startswith("artifacts/checkpoints/"):
-        repo_path = filename.replace("artifacts/checkpoints/", "image/")
+    # Map old repo/local filenames to the actual flat structure in Hugging Face model repository
+    # Hariom51/AI-Medical-Diagnosis-Models
+    if filename.endswith("best_model.pth"):
+        repo_path = "checkpoint_epoch_050.pth"
+    elif filename.startswith("artifacts/checkpoints/"):
+        repo_path = filename.replace("artifacts/checkpoints/", "")
     elif filename.startswith("artifacts/checkpoints_nlp/"):
-        repo_path = filename.replace("artifacts/checkpoints_nlp/", "nlp/")
+        repo_path = filename.replace("artifacts/checkpoints_nlp/", "")
+
+    # Clean any directory prefixes to fetch from flat HF repo layout
+    if "/" in repo_path:
+        repo_path = repo_path.split("/")[-1]
 
     downloader = ModelDownloader()
     return downloader.download_file(repo_path, local_path)

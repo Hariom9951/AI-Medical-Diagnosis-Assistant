@@ -51,13 +51,13 @@ class ModelDownloader:
         Args:
             repo_id: The Hugging Face Model Repository ID.
                      Resolves to HF_MODEL_REPO_ID environment variable or defaults to
-                     'Hariom9951/AI-Medical-Diagnosis-Models'.
+                     'Hariom51/AI-Medical-Diagnosis-Models'.
             token: The HF API Token. Resolves to HF_TOKEN environment variable.
             max_retries: Maximum number of download attempts before failing.
             backoff_factor: Exponential backoff factor for retries.
         """
         self.repo_id = (
-            repo_id or os.getenv("HF_MODEL_REPO_ID") or "Hariom9951/AI-Medical-Diagnosis-Models"
+            repo_id or os.getenv("HF_MODEL_REPO_ID") or "Hariom51/AI-Medical-Diagnosis-Models"
         )
         self.token = token or os.getenv("HF_TOKEN")
         self.max_retries = max_retries
@@ -139,7 +139,13 @@ class ModelDownloader:
         if not dest_path.is_absolute():
             dest_path = self.project_root / dest_path
 
-        expected_sha256 = EXPECTED_SHA256.get(repo_path)
+        # Determine the filename inside the Hugging Face repository.
+        # Since the HF repository is flat, we strip any directory prefixes.
+        hf_repo_filename = repo_path
+        if "/" in repo_path:
+            hf_repo_filename = repo_path.split("/")[-1]
+
+        expected_sha256 = EXPECTED_SHA256.get(repo_path) or EXPECTED_SHA256.get(hf_repo_filename)
 
         # 1. Check if the file is already cached and valid
         if dest_path.exists() and dest_path.stat().st_size > 0:
@@ -155,30 +161,11 @@ class ModelDownloader:
                 )
                 return dest_path
 
-        # 2. Check if offline mode is set via environment variable
-        is_offline = (
-            os.getenv("TRANSFORMERS_OFFLINE") == "1" or os.getenv("HF_DATASETS_OFFLINE") == "1"
-        )
-        if is_offline:
-            if dest_path.exists() and dest_path.stat().st_size > 0:
-                logger.warning(
-                    "Offline mode active: using existing cached file %s without verification.",
-                    dest_path,
-                )
-                return dest_path
-            else:
-                raise AppStorageError(
-                    message=(
-                        f"Offline mode active and file is missing at: {dest_path}. "
-                        "Ensure the model cache is prepopulated."
-                    ),
-                    details={"local_path": str(dest_path)},
-                )
-
-        # 3. Perform download with retries and validation
+        # 2. Perform download with retries and validation (Offline mode does not block downloading missing files)
         logger.info(
-            "Downloading '%s' from repository '%s' to '%s'...",
+            "Downloading '%s' (as '%s') from repository '%s' to '%s'...",
             repo_path,
+            hf_repo_filename,
             self.repo_id,
             dest_path,
         )
@@ -195,10 +182,10 @@ class ModelDownloader:
                     except Exception:
                         pass
 
-                # Perform Hub download
+                # Perform Hub download using the flat file name
                 downloaded_file = hf_hub_download(
                     repo_id=self.repo_id,
-                    filename=repo_path,
+                    filename=hf_repo_filename,
                     repo_type="model",
                     local_dir=str(self.project_root),
                     token=self.token,
@@ -209,6 +196,7 @@ class ModelDownloader:
                 if downloaded_path.resolve() != dest_path.resolve():
                     import shutil
 
+                    dest_path.parent.mkdir(parents=True, exist_ok=True)
                     shutil.move(str(downloaded_path), str(dest_path))
 
                 # Verify downloaded file checksum

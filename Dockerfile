@@ -144,7 +144,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
     TRANSFORMERS_OFFLINE=1 \
     HF_DATASETS_OFFLINE=1 \
     # Model repository for fine-tuned checkpoints (can be overridden via docker run -e)
-    HF_MODEL_REPO_ID="Hariom9951/AI-Medical-Diagnosis-Models"
+    HF_MODEL_REPO_ID="Hariom51/AI-Medical-Diagnosis-Models"
 
 WORKDIR /app
 

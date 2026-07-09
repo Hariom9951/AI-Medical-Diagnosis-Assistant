@@ -91,7 +91,7 @@ jobs:
 
       - name: Configure Hugging Face Space Secrets
         env:
-          HF_MODEL_REPO_ID: "Hariom9951/AI-Medical-Diagnosis-Models"
+          HF_MODEL_REPO_ID: "Hariom51/AI-Medical-Diagnosis-Models"
         run: |
           # Write the Space .env file with the model repository configuration.
           # HF_TOKEN allows the Space to authenticate with the model repository.

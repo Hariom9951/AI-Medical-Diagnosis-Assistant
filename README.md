@@ -28,21 +28,20 @@ An enterprise-grade, clean-architecture clinical decision support system that pr
 
 Model checkpoints are stored **outside this repository** in a dedicated Hugging Face Model Repository:
 
-> **[Hariom9951/AI-Medical-Diagnosis-Models](https://huggingface.co/Hariom9951/AI-Medical-Diagnosis-Models)**
+> **[Hariom51/AI-Medical-Diagnosis-Models](https://huggingface.co/Hariom51/AI-Medical-Diagnosis-Models)**
 
 ### Stored Artifacts
 
 | Path in HF Repo | Description |
 |---|---|
-| `image/best_model.pth` | EfficientNet-B0 best image classifier checkpoint |
-| `image/checkpoint_epoch_050.pth` | EfficientNet-B0 epoch 50 checkpoint |
-| `nlp/best_model.pt` | Fine-tuned BioBERT symptom classifier |
-| `nlp/tokenizer.json` | Saved tokenizer vocabulary |
-| `nlp/tokenizer_config.json` | Tokenizer configuration |
-| `nlp/label_encoder.pkl` | Scikit-learn LabelEncoder with 41 disease classes |
-| `nlp/model_metadata.json` | Model training metadata |
-| `nlp/temperature_scaler.json` | Confidence calibration temperature |
-| `nlp/clinical_explanations.json` | Clinical explanation registry per disease |
+| `checkpoint_epoch_050.pth` | EfficientNet-B0 epoch 50 checkpoint (loaded as image model) |
+| `best_model.pt` | Fine-tuned BioBERT symptom classifier |
+| `tokenizer.json` | Saved tokenizer vocabulary |
+| `tokenizer_config.json` | Tokenizer configuration |
+| `label_encoder.pkl` | Scikit-learn LabelEncoder with 41 disease classes |
+| `model_metadata.json` | Model training metadata |
+| `temperature_scaler.json` | Confidence calibration temperature |
+| `clinical_explanations.json` | Clinical explanation registry per disease |
 
 ### How It Works
 
@@ -97,7 +96,7 @@ Edit `.env`:
 HF_TOKEN=hf_your_token_here
 
 # (Optional) Override the model repository if needed
-HF_MODEL_REPO_ID=Hariom9951/AI-Medical-Diagnosis-Models
+HF_MODEL_REPO_ID=Hariom51/AI-Medical-Diagnosis-Models
 ```
 
 ### 4. Download Model Checkpoints (First Time)
@@ -107,24 +106,31 @@ You can also trigger it manually:
 
 ```bash
 python - <<'EOF'
-from src.utils.downloader import ModelDownloader
+import shutil
 from pathlib import Path
+from src.utils.downloader import ModelDownloader
 
 dl = ModelDownloader()
 files = [
-    ("image/best_model.pth",           "artifacts/checkpoints/best_model.pth"),
-    ("image/checkpoint_epoch_050.pth", "artifacts/checkpoints/checkpoint_epoch_050.pth"),
-    ("nlp/best_model.pt",              "artifacts/checkpoints_nlp/best_model.pt"),
-    ("nlp/tokenizer.json",             "artifacts/checkpoints_nlp/tokenizer.json"),
-    ("nlp/tokenizer_config.json",      "artifacts/checkpoints_nlp/tokenizer_config.json"),
-    ("nlp/label_encoder.pkl",          "artifacts/checkpoints_nlp/label_encoder.pkl"),
-    ("nlp/model_metadata.json",        "artifacts/checkpoints_nlp/model_metadata.json"),
-    ("nlp/temperature_scaler.json",    "artifacts/checkpoints_nlp/temperature_scaler.json"),
-    ("nlp/clinical_explanations.json", "artifacts/checkpoints_nlp/clinical_explanations.json"),
+    ("checkpoint_epoch_050.pth",       "artifacts/checkpoints/checkpoint_epoch_050.pth"),
+    ("best_model.pt",                  "artifacts/checkpoints_nlp/best_model.pt"),
+    ("tokenizer.json",                 "artifacts/checkpoints_nlp/tokenizer.json"),
+    ("tokenizer_config.json",          "artifacts/checkpoints_nlp/tokenizer_config.json"),
+    ("label_encoder.pkl",              "artifacts/checkpoints_nlp/label_encoder.pkl"),
+    ("model_metadata.json",            "artifacts/checkpoints_nlp/model_metadata.json"),
+    ("temperature_scaler.json",        "artifacts/checkpoints_nlp/temperature_scaler.json"),
+    ("clinical_explanations.json",     "artifacts/checkpoints_nlp/clinical_explanations.json"),
 ]
 for repo_path, local_path in files:
     dl.download_file(repo_path, local_path)
     print(f"✅ {repo_path}")
+
+# Create compatibility alias
+epoch_model = Path("artifacts/checkpoints/checkpoint_epoch_050.pth")
+best_model = Path("artifacts/checkpoints/best_model.pth")
+if epoch_model.exists() and not best_model.exists():
+    shutil.copy(str(epoch_model), str(best_model))
+    print("✅ Created alias: best_model.pth")
 EOF
 ```
 
@@ -183,7 +189,7 @@ The application uses a multi-stage Docker build. **Model checkpoints are not bak
 | Variable | Required | Description |
 |---|---|---|
 | `HF_TOKEN` | Yes (private repo) | Hugging Face read token |
-| `HF_MODEL_REPO_ID` | No | Override model repo (default: `Hariom9951/AI-Medical-Diagnosis-Models`) |
+| `HF_MODEL_REPO_ID` | No | Override model repo (default: `Hariom51/AI-Medical-Diagnosis-Models`) |
 
 ### 1. Build the Docker Image
 
@@ -198,7 +204,7 @@ docker run -d \
   --name medical-assistant-app \
   -p 7860:7860 \
   -e HF_TOKEN=hf_your_token_here \
-  -e HF_MODEL_REPO_ID=Hariom9951/AI-Medical-Diagnosis-Models \
+  -e HF_MODEL_REPO_ID=Hariom51/AI-Medical-Diagnosis-Models \
   ai-medical-diagnosis-assistant:latest
 ```
 
@@ -264,18 +270,15 @@ AI-Medical-Diagnosis-Assistant/          ← Application repository (no model we
 │   └── deploy-huggingface.yml          ← HF Spaces deployment
 └── Dockerfile                          ← Multi-stage build (no model weights baked in)
 
-Hariom9951/AI-Medical-Diagnosis-Models  ← Separate HF Model Repository
-├── image/
-│   ├── best_model.pth
-│   └── checkpoint_epoch_050.pth
-└── nlp/
-    ├── best_model.pt
-    ├── tokenizer.json
-    ├── tokenizer_config.json
-    ├── label_encoder.pkl
-    ├── model_metadata.json
-    ├── temperature_scaler.json
-    └── clinical_explanations.json
+Hariom51/AI-Medical-Diagnosis-Models  ← Separate HF Model Repository (Flat Layout)
+├── checkpoint_epoch_050.pth
+├── best_model.pt
+├── tokenizer.json
+├── tokenizer_config.json
+├── label_encoder.pkl
+├── model_metadata.json
+├── temperature_scaler.json
+└── clinical_explanations.json
 ```
 
 ---
@@ -291,24 +294,22 @@ python - <<'EOF'
 from huggingface_hub import HfApi
 api = HfApi()
 
-repo_id = "Hariom9951/AI-Medical-Diagnosis-Models"
+repo_id = "Hariom51/AI-Medical-Diagnosis-Models"
 
 # Create repository if it doesn't exist
 api.create_repo(repo_id=repo_id, repo_type="model", exist_ok=True)
 
-# Upload image checkpoints
-api.upload_file(path_or_fileobj="artifacts/checkpoints/best_model.pth",
-                path_in_repo="image/best_model.pth", repo_id=repo_id)
+# Upload image checkpoint (flat name)
 api.upload_file(path_or_fileobj="artifacts/checkpoints/checkpoint_epoch_050.pth",
-                path_in_repo="image/checkpoint_epoch_050.pth", repo_id=repo_id)
+                path_in_repo="checkpoint_epoch_050.pth", repo_id=repo_id)
 
-# Upload NLP checkpoints and tokenizer
+# Upload NLP checkpoints and tokenizer (flat names)
 for fname in ["best_model.pt", "tokenizer.json", "tokenizer_config.json",
               "label_encoder.pkl", "model_metadata.json",
               "temperature_scaler.json", "clinical_explanations.json"]:
     api.upload_file(path_or_fileobj=f"artifacts/checkpoints_nlp/{fname}",
-                    path_in_repo=f"nlp/{fname}", repo_id=repo_id)
-    print(f"✅ Uploaded nlp/{fname}")
+                    path_in_repo=fname, repo_id=repo_id)
+    print(f"✅ Uploaded {fname}")
 print("All models uploaded successfully!")
 EOF
 ```
