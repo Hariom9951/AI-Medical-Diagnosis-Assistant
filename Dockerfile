@@ -160,6 +160,12 @@ COPY requirements.txt .
 COPY data/processed/disease_mapping_41.json ./data/processed/disease_mapping_41.json
 COPY data/processed/disease_mapping.json    ./data/processed/disease_mapping.json
 
+# ── Copy Streamlit server configuration ──────────────────────
+# config.toml disables XSRF protection and CORS so that file uploads
+# work correctly when Streamlit runs behind the HF Spaces nginx proxy.
+# Without this file the upload POST to /_stcore/upload_file returns 403.
+COPY .streamlit/ ./.streamlit/
+
 # ── Install the project package (editable-style, no deps) ────
 RUN pip install --no-cache-dir --no-deps -e .
 
