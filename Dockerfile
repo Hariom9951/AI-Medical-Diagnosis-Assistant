@@ -2,13 +2,24 @@
 # AI Medical Diagnosis Assistant — Production Dockerfile
 # ============================================================
 # Multi-stage build:
-#   Stage 1 (builder)  — install Python dependencies into a
-#                        clean virtual-env to keep the final
+#   Stage 1 (builder)  — install Python dependencies and
+#                        pre-download BioBERT base weights into
+#                        a clean virtual-env to keep the final
 #                        image lean and cache-friendly.
 #   Stage 2 (runtime)  — copy only the venv + app code.
+#                        Model checkpoints are NOT baked in;
+#                        they are fetched from the Hugging Face
+#                        model repository at container start via
+#                        the ModelDownloader service.
 #
 # Ports:
 #   7860  Streamlit
+#
+# Required Environment Variables at Runtime:
+#   HF_TOKEN           — Hugging Face API token (write access not
+#                        required; read-only token for model repo)
+#   HF_MODEL_REPO_ID   — (optional) override model repo, defaults
+#                        to "Hariom9951/AI-Medical-Diagnosis-Models"
 # ============================================================
 
 # ─── Stage 1: dependency builder ────────────────────────────
@@ -39,7 +50,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # ── Pre-download BioBERT base weights into the builder image ──
 # Internet is available during build; we cache the model so the
-# runtime container can run fully offline (TRANSFORMERS_OFFLINE=1).
+# runtime container can load BioBERT architecture offline.
+# NOTE: This does NOT download the fine-tuned checkpoint weights —
+#       those are fetched at runtime from the HF model repository.
 ENV HF_HOME=/build/hf_cache
 RUN /opt/venv/bin/python - <<'EOF'
 import sys
@@ -86,8 +99,8 @@ EOF
 FROM python:3.11-slim AS runtime
 
 LABEL maintainer="Hariom Sharma <hariom9951@github.com>" \
-      version="2.0.0" \
-      description="AI Medical Diagnosis Assistant — Streamlit"
+      version="3.0.0" \
+      description="AI Medical Diagnosis Assistant — Streamlit (runtime model download)"
 
 # Runtime system libraries (no build tools)
 # libgl1 is required by opencv-python-headless at runtime (links against libGL.so.1)
@@ -107,7 +120,7 @@ COPY --from=builder /opt/venv /opt/venv
 
 # ── Copy pre-downloaded HuggingFace model cache from builder ─
 # Allows the runtime container to load dmis-lab/biobert-base-cased-v1.1
-# fully offline (TRANSFORMERS_OFFLINE=1 is set below).
+# architecture weights fully offline (TRANSFORMERS_OFFLINE=1 is set below).
 COPY --from=builder /build/hf_cache /opt/hf_cache
 
 # Put venv binaries first on PATH
@@ -124,11 +137,14 @@ ENV PATH="/opt/venv/bin:$PATH" \
     CUDA_VISIBLE_DEVICES="" \
     # Suppress tokenizers parallelism warning
     TOKENIZERS_PARALLELISM=false \
-    # HuggingFace cache — points at the model weights baked into the image
+    # HuggingFace cache — points at the BioBERT base weights baked into the image
     HF_HOME=/opt/hf_cache \
-    # Transformers offline mode — use local files, no HuggingFace downloads
+    # Transformers offline mode — use local BioBERT base weights, no HuggingFace downloads
+    # (fine-tuned checkpoint weights are fetched from HF_MODEL_REPO_ID separately)
     TRANSFORMERS_OFFLINE=1 \
-    HF_DATASETS_OFFLINE=1
+    HF_DATASETS_OFFLINE=1 \
+    # Model repository for fine-tuned checkpoints (can be overridden via docker run -e)
+    HF_MODEL_REPO_ID="Hariom9951/AI-Medical-Diagnosis-Models"
 
 WORKDIR /app
 
@@ -140,13 +156,6 @@ COPY setup.py       .
 COPY pyproject.toml .
 COPY requirements.txt .
 
-# ── Copy trained model artefacts ─────────────────────────────
-# EfficientNet image checkpoint
-COPY artifacts/checkpoints/   ./artifacts/checkpoints/
-
-# BioBERT NLP checkpoint + tokenizer
-COPY artifacts/checkpoints_nlp/ ./artifacts/checkpoints_nlp/
-
 # ── Copy disease mapping used by NLP pipeline ─────────────────
 COPY data/processed/disease_mapping_41.json ./data/processed/disease_mapping_41.json
 COPY data/processed/disease_mapping.json    ./data/processed/disease_mapping.json
@@ -155,7 +164,13 @@ COPY data/processed/disease_mapping.json    ./data/processed/disease_mapping.jso
 RUN pip install --no-cache-dir --no-deps -e .
 
 # ── Create writable runtime directories ──────────────────────
-RUN mkdir -p artifacts/gradcam artifacts/evaluation logs && \
+# Model checkpoints are downloaded at startup into these directories.
+RUN mkdir -p \
+        artifacts/checkpoints \
+        artifacts/checkpoints_nlp \
+        artifacts/gradcam \
+        artifacts/evaluation \
+        logs && \
     chmod -R 777 artifacts logs
 
 # ── Copy startup script ───────────────────────────────────────

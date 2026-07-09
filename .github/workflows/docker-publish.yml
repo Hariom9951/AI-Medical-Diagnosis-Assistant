@@ -40,32 +40,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare Dummy Artifacts for Docker Build
-        # Excluded checkpoints and processed data files in .gitignore need to exist as dummy files
-        # so COPY commands inside the Dockerfile don't fail when building inside clean CI/CD runners
+      - name: Prepare Disease Mapping Data for Docker Build
+        # Model checkpoints are NOT baked into the image.
+        # They are downloaded at runtime by the ModelDownloader service
+        # from: Hariom9951/AI-Medical-Diagnosis-Models
         run: |
+          # Create empty artifact directories (models downloaded at runtime)
           mkdir -p artifacts/checkpoints
-          touch artifacts/checkpoints/best_model.pth
-          touch artifacts/checkpoints/checkpoint_epoch_050.pth
-          
           mkdir -p artifacts/checkpoints_nlp
-          touch artifacts/checkpoints_nlp/best_model.pt
-          touch artifacts/checkpoints_nlp/config.json
-          touch artifacts/checkpoints_nlp/pytorch_model.bin
-          touch artifacts/checkpoints_nlp/tokenizer_config.json
-          touch artifacts/checkpoints_nlp/special_tokens_map.json
-          touch artifacts/checkpoints_nlp/vocab.txt
-          touch artifacts/checkpoints_nlp/label_encoder.pkl
-          touch artifacts/checkpoints_nlp/temperature_scaler.json
-          touch artifacts/checkpoints_nlp/clinical_explanations.json
-          touch artifacts/checkpoints_nlp/model_metadata.json
 
+          # Create the disease mapping JSON files required by NLP pipeline
           mkdir -p data/processed
           echo '{"COVID": 0, "Lung_Opacity": 1, "Normal": 2, "Viral Pneumonia": 3}' > data/processed/disease_mapping_41.json
           echo '{"COVID": 0, "Lung_Opacity": 1, "Normal": 2, "Viral Pneumonia": 3}' > data/processed/disease_mapping.json
 
       - name: Build and Push Docker Image
-        # Builds and pushes the image using docker/build-push-action with buildx cache
+        # Builds and pushes the image using docker/build-push-action with buildx cache.
+        # Model checkpoints are fetched at runtime via ModelDownloader (HF_MODEL_REPO_ID).
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -75,3 +66,5 @@ jobs:
           # Buildx cache configuration utilizing GitHub Actions caching backend
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            HF_MODEL_REPO_ID=Hariom9951/AI-Medical-Diagnosis-Models

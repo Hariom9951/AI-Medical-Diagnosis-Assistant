@@ -131,11 +131,9 @@ class NLPInferencePipeline:
             "label_encoder.pkl",
             "temperature_scaler.json",
             "clinical_explanations.json",
-            "config.json",
             "tokenizer.json",
             "tokenizer_config.json",
-            "special_tokens_map.json",
-            "vocab.txt",
+            "model_metadata.json",
         ]
         for tf in tokenizer_files:
             local_tf_path = resolved_tokenizer / tf

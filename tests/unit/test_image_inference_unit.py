@@ -45,10 +45,12 @@ mlflow_experiment_name: "test-experiment"
     return cfg_file
 
 
+@patch("src.utils.common.download_if_needed", side_effect=lambda p, _: p)
 @patch("src.inference.predict.torch.load")
 @patch("src.inference.predict.EfficientNetClassifier")
 def test_pipeline_initialization(
-    mock_classifier: MagicMock, mock_load: MagicMock, test_config: Path, tmp_path: Path
+    mock_classifier: MagicMock, mock_load: MagicMock, mock_download: MagicMock,
+    test_config: Path, tmp_path: Path
 ) -> None:
     """Verifies that the inference pipeline initializes config, model, and loads checkpoint."""
     mock_load.return_value = {
@@ -68,10 +70,12 @@ def test_pipeline_initialization(
     mock_load.assert_called_once_with(ckpt_path, map_location=pipeline.device, weights_only=False)
 
 
+@patch("src.utils.common.download_if_needed", side_effect=lambda p, _: p)
 @patch("src.inference.predict.torch.load")
 @patch("src.inference.predict.EfficientNetClassifier")
 def test_preprocess_inputs(
-    mock_classifier: MagicMock, mock_load: MagicMock, test_config: Path, tmp_path: Path
+    mock_classifier: MagicMock, mock_load: MagicMock, mock_download: MagicMock,
+    test_config: Path, tmp_path: Path
 ) -> None:
     """Verifies preprocessing works for NumPy array, PIL image, and grayscale inputs."""
     mock_load.return_value = {
@@ -104,10 +108,12 @@ def test_preprocess_inputs(
     assert tensor3.shape == (1, 3, 224, 224)
 
 
+@patch("src.utils.common.download_if_needed", side_effect=lambda p, _: p)
 @patch("src.inference.predict.torch.load")
 @patch("src.inference.predict.EfficientNetClassifier")
 def test_predict_flow(
-    mock_classifier: MagicMock, mock_load: MagicMock, test_config: Path, tmp_path: Path
+    mock_classifier: MagicMock, mock_load: MagicMock, mock_download: MagicMock,
+    test_config: Path, tmp_path: Path
 ) -> None:
     """Verifies predict returns predicted disease, confidence, and class probabilities."""
     mock_load.return_value = {
@@ -136,10 +142,12 @@ def test_predict_flow(
     assert len(res["class_probabilities"]) == 4
 
 
+@patch("src.utils.common.download_if_needed", side_effect=lambda p, _: p)
 @patch("src.inference.predict.torch.load")
 @patch("src.inference.predict.EfficientNetClassifier")
 def test_predict_invalid_image_path(
-    mock_classifier: MagicMock, mock_load: MagicMock, test_config: Path, tmp_path: Path
+    mock_classifier: MagicMock, mock_load: MagicMock, mock_download: MagicMock,
+    test_config: Path, tmp_path: Path
 ) -> None:
     """Verifies validation error is raised if input image file path does not exist."""
     mock_load.return_value = {
@@ -160,10 +168,12 @@ def test_predict_invalid_image_path(
     assert "does not exist" in str(exc.value)
 
 
+@patch("src.utils.common.download_if_needed", side_effect=lambda p, _: p)
 @patch("src.inference.predict.torch.load")
 @patch("src.inference.predict.EfficientNetClassifier")
 def test_predict_unsupported_type(
-    mock_classifier: MagicMock, mock_load: MagicMock, test_config: Path, tmp_path: Path
+    mock_classifier: MagicMock, mock_load: MagicMock, mock_download: MagicMock,
+    test_config: Path, tmp_path: Path
 ) -> None:
     """Verifies validation error is raised when input image type is not supported."""
     mock_load.return_value = {

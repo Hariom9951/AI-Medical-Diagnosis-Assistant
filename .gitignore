@@ -41,36 +41,56 @@ kaggle.json
 logs/
 temp/
 
-# === PyTorch & ML Artifacts ===
-# Exclude model weights and checkpoint files
+# ==========================================================
+# === ML Model Artifacts (EXCLUDED FROM REPO)
+# ==========================================================
+# All model weights, checkpoints, and binary serialisations
+# are stored in the separate Hugging Face model repository:
+#   https://huggingface.co/Hariom9951/AI-Medical-Diagnosis-Models
+#
+# The ModelDownloader service (src/utils/downloader.py) fetches
+# and caches them locally at first startup automatically.
+# Do NOT commit any model binary files to this repository.
+# ==========================================================
+
+# PyTorch model weights
 *.pt
 *.pth
 *.onnx
 *.bin
+
+# Scikit-learn serialisations
 *.pkl
+*.joblib
+
+# TensorFlow / ONNX
 *.pb
-# Exclude actual training checkpoints & intermediate runs
+*.h5
+*.hdf5
+
+# Training run artifacts
 models/*
 !models/.gitkeep
+
+# artifacts/ — keep folder stubs, exclude all binary content
 artifacts/*
 !artifacts/.gitkeep
-!artifacts/checkpoints_nlp/
-!artifacts/checkpoints_nlp/**
+
+# Explicitly allow non-binary metadata / placeholder files
+# (but never the actual weight files)
 !artifacts/checkpoints/
-!artifacts/checkpoints/**
+!artifacts/checkpoints_nlp/
 
 # === Streamlit ===
 .streamlit/config.toml
 .streamlit/secrets.toml
 
 # === DVC (Data Version Control) ===
-# DVC caches and locks should not be committed to Git
 .dvc/cache/
 .dvc/tmp/
 .dvc/config.local
 
 # === MLflow ===
-# Local MLflow runs and tracking database caches
 mlruns/
 mlflow.db
 
@@ -78,6 +98,7 @@ mlflow.db
 .docker/
 docker-compose.override.yml
 
+# === Data ===
 data/*
 !data/processed/
 data/processed/*

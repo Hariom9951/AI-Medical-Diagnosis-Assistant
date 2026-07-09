@@ -153,119 +153,19 @@ def load_best_checkpoint(
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
-def _is_lfs_pointer(path: Path) -> bool:
-    """Checks if the file is a Git LFS pointer instead of a real file.
-    Git LFS pointers are small text files containing 'version https://git-lfs'.
-    """
-    if not path.exists():
-        return False
-    try:
-        if path.stat().st_size < 1024:
-            with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                content = f.read(100)
-                if content.startswith("version https://git-lfs"):
-                    return True
-    except Exception as e:
-        logger.debug("Error checking LFS pointer status of %s: %s", path, e)
-    return False
-
-
 def download_if_needed(local_path: Union[str, Path], filename: str) -> Path:
-    """Helper to check if a model file is missing, a 0-byte placeholder, or a Git LFS pointer.
-    If so, download it from the Hugging Face repository using huggingface_hub.
-    Supports HF_MODEL_REPO_ID (model repo), SPACE_ID (space repo), or falls back to
-    'Hariom51/ai-medical-diagnosis-assistant'.
+    """Delegates file download and SHA256 validation to the ModelDownloader component,
+    mapping old path arguments to the new model repository structure.
     """
-    path = Path(local_path)
-    if not path.is_absolute():
-        path = PROJECT_ROOT / path
+    from src.utils.downloader import ModelDownloader
 
-    # Environment detection
-    if os.getenv("SPACE_ID"):
-        env = "Hugging Face Space"
-    elif os.path.exists("/.dockerenv") or os.getenv("DOCKER_CONTAINER"):
-        env = "Docker Container"
-    elif os.getenv("RENDER"):
-        env = "Render"
-    elif os.name == "nt":
-        env = "Local Windows"
-    else:
-        env = "Local/Cloud VM"
+    repo_path = filename
+    # Map old repo structure to the new logical layout
+    if filename.startswith("artifacts/checkpoints/"):
+        repo_path = filename.replace("artifacts/checkpoints/", "image/")
+    elif filename.startswith("artifacts/checkpoints_nlp/"):
+        repo_path = filename.replace("artifacts/checkpoints_nlp/", "nlp/")
 
-    logger.info("Detected environment: %s", env)
-    logger.info(
-        "Checking file: %s (Exists: %s, Size: %s bytes)",
-        path,
-        path.exists(),
-        path.stat().st_size if path.exists() else "N/A",
-    )
+    downloader = ModelDownloader()
+    return downloader.download_file(repo_path, local_path)
 
-    is_lfs = _is_lfs_pointer(path)
-    if is_lfs:
-        logger.info("File %s identified as a Git LFS pointer file.", path)
-
-    if not path.exists() or path.stat().st_size == 0 or is_lfs:
-        repo_id = (
-            os.getenv("HF_MODEL_REPO_ID")
-            or os.getenv("SPACE_ID")
-            or "Hariom51/ai-medical-diagnosis-assistant"
-        )
-        repo_type = "model" if os.getenv("HF_MODEL_REPO_ID") else "space"
-        logger.info(
-            "Local file %s is missing, 0-byte, or LFS pointer. "
-            "Attempting auto-download from HF %s '%s'...",
-            path,
-            repo_type,
-            repo_id,
-        )
-        try:
-            from huggingface_hub import hf_hub_download
-
-            # Remove placeholder or LFS pointer file before download to avoid cache/symlink conflicts
-            if path.exists():
-                try:
-                    path.unlink()
-                    logger.info("Successfully removed placeholder/LFS pointer: %s", path)
-                except Exception as rm_err:
-                    logger.debug(
-                        "Could not remove placeholder file %s before download: %s", path, rm_err
-                    )
-
-            path.parent.mkdir(parents=True, exist_ok=True)
-            downloaded = hf_hub_download(
-                repo_id=repo_id,
-                repo_type=repo_type,
-                filename=filename,
-                local_dir=str(PROJECT_ROOT),
-                token=os.getenv("HF_TOKEN"),
-            )
-            downloaded_path = Path(downloaded)
-            logger.info("Successfully downloaded %s from HF to %s (Size: %d bytes)", filename, downloaded_path, downloaded_path.stat().st_size if downloaded_path.exists() else 0)
-            
-            # If the downloaded file is 0 bytes (a dummy placeholder on HF), unlink it and don't write/copy it.
-            if downloaded_path.exists() and downloaded_path.stat().st_size == 0:
-                logger.warning("Downloaded file %s is a 0-byte placeholder on HF. Removing from local disk.", downloaded_path)
-                try:
-                    downloaded_path.unlink()
-                except Exception:
-                    pass
-                if path.exists() and path.resolve() != downloaded_path.resolve():
-                    try:
-                        path.unlink()
-                    except Exception:
-                        pass
-                return path
-
-            # If the requested path is different from the downloaded path (e.g. temp dir in unit tests), copy it there
-            if downloaded_path.resolve() != path.resolve():
-                import shutil
-                shutil.copy2(downloaded_path, path)
-                logger.info("Copied downloaded file from %s to target path %s", downloaded_path, path)
-            return path
-        except Exception as e:
-            logger.error(
-                "Auto-download of %s failed: %s. Proceeding with local file check.", filename, e
-            )
-    else:
-        logger.info("Local file %s is valid and ready.", path)
-    return path

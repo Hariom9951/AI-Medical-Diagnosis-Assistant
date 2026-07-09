@@ -111,3 +111,7 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::UserWarning"
 ]
+markers = [
+    "integration: marks tests as integration tests (may require network or real checkpoints)",
+    "slow: marks tests as slow (requires actual model checkpoint downloads)",
+]

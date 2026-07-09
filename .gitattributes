@@ -1,3 +1,20 @@
-artifacts/checkpoints_nlp/best_model.pt filter=lfs diff=lfs merge=lfs -text
-artifacts/checkpoints/checkpoint_epoch_050.pth filter=lfs diff=lfs merge=lfs -text
-artifacts/checkpoints/best_model.pth filter=lfs diff=lfs merge=lfs -text
+# ============================================================
+# .gitattributes — AI Medical Diagnosis Assistant
+# ============================================================
+# Git LFS is NO LONGER used for model checkpoints.
+# All model binaries (*.pth, *.pt, *.pkl, *.bin) are excluded
+# from this repository via .gitignore.
+#
+# Model artifacts are stored in the dedicated Hugging Face
+# Model Repository: Hariom9951/AI-Medical-Diagnosis-Models
+#
+# The ModelDownloader service (src/utils/downloader.py) fetches
+# and caches model files automatically at first startup.
+# ============================================================
+
+# Ensure shell scripts have Unix line endings in all environments
+*.sh text eol=lf
+
+# Ensure YAML files have Unix line endings
+*.yml text eol=lf
+*.yaml text eol=lf
