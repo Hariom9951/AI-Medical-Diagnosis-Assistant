@@ -1,0 +1,14 @@
+[server]
+# Disable XSRF (Cross-Site Request Forgery) protection.
+# Required when Streamlit runs behind a reverse proxy such as Hugging Face Spaces nginx.
+# Without this setting, Streamlit >=1.36 returns HTTP 403 for every file upload POST
+# to /_stcore/upload_file because the proxy breaks the XSRF token cookie exchange.
+enableXsrfProtection = false
+
+# Disable CORS checks for the same reason — the HF Spaces proxy changes the
+# Origin header, which causes Streamlit's CORS guard to reject WebSocket upgrades
+# and file upload requests.
+enableCORS = false
+
+[browser]
+gatherUsageStats = false

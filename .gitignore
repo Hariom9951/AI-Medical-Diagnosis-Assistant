@@ -82,7 +82,8 @@ artifacts/*
 !artifacts/checkpoints_nlp/
 
 # === Streamlit ===
-.streamlit/config.toml
+# config.toml is intentionally tracked — it contains only server settings (no secrets).
+# secrets.toml holds sensitive tokens and must never be committed.
 .streamlit/secrets.toml
 
 # === DVC (Data Version Control) ===
