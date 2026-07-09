@@ -70,7 +70,7 @@ jobs:
       - name: Verify Docker Image Startup & Health Check
         env:
           # Point to the production model repository
-          HF_MODEL_REPO_ID: "Hariom9951/AI-Medical-Diagnosis-Models"
+          HF_MODEL_REPO_ID: "Hariom51/AI-Medical-Diagnosis-Models"
           # Pass HF token if available (optional for CI — startup skips download if token absent)
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           # Enable offline mode for TRANSFORMERS so BioBERT base loads from baked-in cache
@@ -134,5 +134,5 @@ jobs:
           echo " Pytest unit tests executed and passed."
           echo " Docker image built and verified with startup health-checks."
           echo " Model checkpoints: fetched at runtime via ModelDownloader"
-          echo "   Repo: Hariom9951/AI-Medical-Diagnosis-Models"
+          echo "   Repo: Hariom51/AI-Medical-Diagnosis-Models"
           echo "============================================="

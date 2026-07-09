@@ -551,9 +551,12 @@ if "Chest X-ray" in mode:
             key="xray_uploader",
         )
 
-        if uploaded_file is not None:
-            st.session_state.current_image_bytes = uploaded_file.getvalue()
-            st.session_state.current_image_name = uploaded_file.name
+        # Retrieve active file from direct return or session state backup
+        active_uploaded_file = uploaded_file or st.session_state.get("xray_uploader")
+
+        if active_uploaded_file is not None:
+            st.session_state.current_image_bytes = active_uploaded_file.getvalue()
+            st.session_state.current_image_name = active_uploaded_file.name
         else:
             st.session_state.current_image_bytes = None
             st.session_state.current_image_name = None
@@ -642,7 +645,7 @@ if "Chest X-ray" in mode:
                     # Predict
                     start_time = time.perf_counter()
                     app_logger.info("Executing prediction on the preprocessed image...")
-                    result = pipeline.predict(pil_img)
+                    result = pipeline.predict(active_uploaded_file)
                     end_time = time.perf_counter()
 
                     app_logger.info(
@@ -670,7 +673,7 @@ if "Chest X-ray" in mode:
                         pred_idx = pipeline.CLASSES.index(pred_disease)
 
                         # Generate heatmap using preprocessed tensor
-                        img_tensor = pipeline.preprocess(pil_img)
+                        img_tensor = pipeline.preprocess(active_uploaded_file)
                         explainer = GradCAMExplainer(model=pipeline.model)
                         heatmap = explainer.generate_heatmap(img_tensor, target_class_idx=pred_idx)
 

@@ -207,3 +207,46 @@ def test_predict_unsupported_type(
     with pytest.raises(AppValidationError) as exc:
         pipeline.predict(12345)  # type: ignore[arg-type]
     assert "Unsupported image input type" in str(exc.value)
+
+
+@patch("src.utils.common.download_if_needed", side_effect=lambda p, _: p)
+@patch("src.inference.predict.torch.load")
+@patch("src.inference.predict.EfficientNetClassifier")
+def test_predict_file_like_object(
+    mock_classifier: MagicMock,
+    mock_load: MagicMock,
+    mock_download: MagicMock,
+    test_config: Path,
+    tmp_path: Path,
+) -> None:
+    """Verifies that the inference pipeline successfully processes file-like objects (e.g., BytesIO)."""
+    import io
+
+    from PIL import Image as PILImage
+
+    mock_load.return_value = {
+        "epoch": 1,
+        "metrics": {"val_loss": 0.2, "val_acc": 0.8},
+        "model_state_dict": {"backbone.features.0.weight": torch.zeros(1)},
+    }
+    mock_model = MagicMock()
+    mock_model.state_dict.return_value = {"backbone.features.0.weight": torch.zeros(1)}
+    mock_classifier.return_value = mock_model
+
+    pipeline = ImageInferencePipeline(
+        config_path=test_config, checkpoint_path=tmp_path / "best_model.pth"
+    )
+
+    # Mock the model output
+    pipeline.model = MagicMock()
+    pipeline.model.return_value = torch.tensor([[10.0, 1.0, 1.0, 1.0]])
+
+    # Create a simple PIL image, save it to BytesIO, and pass it
+    pil_img = PILImage.new("RGB", (100, 100), color="white")
+    bio = io.BytesIO()
+    pil_img.save(bio, format="PNG")
+    bio.seek(0)
+
+    res = pipeline.predict(bio)
+    assert res["predicted_disease"] == "COVID"
+    assert res["confidence"] > 0.99

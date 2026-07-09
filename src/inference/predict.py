@@ -257,6 +257,16 @@ class ImageInferencePipeline:
             elif isinstance(image_input, Image.Image):
                 rgb_img = image_input.convert("RGB")
                 image_np = np.array(rgb_img)
+            elif hasattr(image_input, "read") or hasattr(image_input, "getvalue"):
+                # Handle file-like objects (e.g., Streamlit UploadedFile, BytesIO)
+                if hasattr(image_input, "seek"):
+                    try:
+                        image_input.seek(0)
+                    except Exception:
+                        pass
+                with Image.open(image_input) as pil_img:
+                    rgb_img = pil_img.convert("RGB")
+                    image_np = np.array(rgb_img)
             elif isinstance(image_input, np.ndarray):
                 # Ensure it has 3 channels
                 if len(image_input.shape) == 2:
