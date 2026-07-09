@@ -133,7 +133,6 @@ class TestCacheHitSkipsDownload:
                 mock_verify.assert_called_once()
 
 
-
 class TestDownloadWithMock:
     """Tests the download path using a mocked hf_hub_download."""
 

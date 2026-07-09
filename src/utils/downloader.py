@@ -21,6 +21,7 @@ logger = AppLogger.get_logger(__name__)
 # Expected SHA256 checksums for all trained model files.
 # Ensures integrity and prevents corruption.
 EXPECTED_SHA256: Dict[str, str] = {
+    # Prefixed keys (for legacy code/tests)
     "image/best_model.pth": "affa284a444d924edb9426a0bf6fb26d41f4d0d96c3744e9b3cc705db39b37b3",
     "image/checkpoint_epoch_050.pth": "affa284a444d924edb9426a0bf6fb26d41f4d0d96c3744e9b3cc705db39b37b3",
     "nlp/best_model.pt": "39903c7f536ac200003f8a87ca8c0af2847eb2af66839da7620eca1a8d76fb15",
@@ -30,6 +31,16 @@ EXPECTED_SHA256: Dict[str, str] = {
     "nlp/model_metadata.json": "38f984eca04d3d629f96aa1f7d5cc501acad04057e1b870a08be01f610ae8262",
     "nlp/temperature_scaler.json": "0e75867a68a7fd12ec20dcbb4ac9bb44ce5cc9bc1b069c9c3b066fa03865e689",
     "nlp/clinical_explanations.json": "5246003b14661544a1aaa93525ca911afc7bde02bea4c2982999451d166015c1",
+    # Flat keys (for new flat HF repository layout)
+    "best_model.pth": "affa284a444d924edb9426a0bf6fb26d41f4d0d96c3744e9b3cc705db39b37b3",
+    "checkpoint_epoch_050.pth": "affa284a444d924edb9426a0bf6fb26d41f4d0d96c3744e9b3cc705db39b37b3",
+    "best_model.pt": "39903c7f536ac200003f8a87ca8c0af2847eb2af66839da7620eca1a8d76fb15",
+    "tokenizer.json": "9355eae89d401cee6b1f7c9acaf4791191e3b22c918e5f616b6baea13b66e748",
+    "tokenizer_config.json": "9f0c2c65a70ea18113ffa2e717103e7210ea826e7acc3442b69b346686b55a48",
+    "label_encoder.pkl": "ae00d6ca392a2605c539285a00b896358c6f98b5876743c86256b0f5b615c50c",
+    "model_metadata.json": "38f984eca04d3d629f96aa1f7d5cc501acad04057e1b870a08be01f610ae8262",
+    "temperature_scaler.json": "0e75867a68a7fd12ec20dcbb4ac9bb44ce5cc9bc1b069c9c3b066fa03865e689",
+    "clinical_explanations.json": "5246003b14661544a1aaa93525ca911afc7bde02bea4c2982999451d166015c1",
 }
 
 
