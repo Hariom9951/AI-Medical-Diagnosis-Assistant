@@ -552,21 +552,35 @@ if "Chest X-ray" in mode:
             key="xray_uploader",
         )
 
+        # Store UploadedFile and PIL Image in st.session_state so it survives reruns.
         if uploaded_file is not None:
-            st.session_state.current_image_bytes = uploaded_file.getvalue()
-            st.session_state.current_image_name = uploaded_file.name
-        # NOTE: do NOT clear session state if uploaded_file is None on re-run.
-        # Streamlit re-runs the script on every interaction (including button clicks),
-        # and st.file_uploader returns None during those re-runs unless the user actively
-        # changed the selected file. Clearing here would wipe the image on the same run
-        # that the Analyze button is pressed, causing the "No image uploaded" error.
+            try:
+                from PIL import Image as PILImage
+
+                st.session_state.current_image_bytes = uploaded_file.getvalue()
+                st.session_state.current_image_name = uploaded_file.name
+                if hasattr(uploaded_file, "seek"):
+                    uploaded_file.seek(0)
+                st.session_state.xray_image = PILImage.open(uploaded_file).convert("RGB")
+            except Exception as e:
+                st.error(f"Error loading image: {e}")
+        else:
+            # Check if user explicitly cleared the file uploader widget by verifying
+            # that xray_uploader exists in st.session_state and is empty/None.
+            if "xray_uploader" in st.session_state:
+                val = st.session_state["xray_uploader"]
+                if val is None or val == []:
+                    st.session_state.current_image_bytes = None
+                    st.session_state.current_image_name = None
+                    st.session_state.xray_image = None
+
+
 
         # Log active cache state
-        if st.session_state.get("current_image_bytes") is not None:
+        if st.session_state.get("xray_image") is not None:
             app_logger.info(
-                "Active image file in session cache: name=%s, size=%d bytes",
+                "Active image file in session cache: name=%s",
                 st.session_state.current_image_name,
-                len(st.session_state.current_image_bytes),
             )
         else:
             app_logger.debug("No active image in session cache.")
@@ -574,7 +588,7 @@ if "Chest X-ray" in mode:
         run_image = st.button("🔍  Analyze X-ray", use_container_width=True)
 
     with col_preview:
-        if st.session_state.get("current_image_bytes") is not None:
+        if st.session_state.get("xray_image") is not None:
             # If the user uploaded a different image, reset previous results
             if st.session_state.last_image_name != st.session_state.current_image_name:
                 st.session_state.image_results = None
@@ -586,8 +600,8 @@ if "Chest X-ray" in mode:
                 st.session_state.last_image_name = st.session_state.current_image_name
 
             st.image(
-                st.session_state.current_image_bytes,
-                caption="Uploaded X-ray",
+                st.session_state.xray_image,
+                caption="Uploaded X-ray Preview",
                 use_container_width=True,
             )
         else:
@@ -612,7 +626,7 @@ if "Chest X-ray" in mode:
 
     # ── Run inference ────────────────────────────────────────────────────────
     if run_image:
-        if st.session_state.get("current_image_bytes") is None:
+        if st.session_state.get("xray_image") is None:
             st.markdown(
                 """
             <div class="result-card-error">
@@ -627,9 +641,11 @@ if "Chest X-ray" in mode:
                     app_logger.info("Initializing image inference pipeline...")
                     pipeline = load_image_pipeline()
 
-                    from PIL import Image as PILImage
-
-                    image_size = len(st.session_state.current_image_bytes)
+                    image_size = (
+                        len(st.session_state.current_image_bytes)
+                        if st.session_state.current_image_bytes
+                        else 0
+                    )
                     app_logger.info(
                         "Uploaded image size: %d bytes (name: %s)",
                         image_size,
@@ -637,9 +653,7 @@ if "Chest X-ray" in mode:
                     )
 
                     app_logger.info("Preprocessing uploaded image for model prediction...")
-                    pil_img = PILImage.open(
-                        io.BytesIO(st.session_state.current_image_bytes)
-                    ).convert("RGB")
+                    pil_img = st.session_state.xray_image
 
                     # Predict using the already-decoded PIL image
                     start_time = time.perf_counter()
@@ -791,8 +805,6 @@ if "Chest X-ray" in mode:
                 col_orig, col_heat, col_over = st.columns(3)
                 with col_orig:
                     # Retrieve the original uploaded image file directly from session state
-                    import io
-
                     from PIL import Image as PILImage
 
                     if st.session_state.get("current_image_bytes") is not None:
