@@ -35,7 +35,7 @@ EXPECTED_SHA256: Dict[str, str] = {
 
 class ModelDownloader:
     """Production-grade downloader for trained models and configurations.
-    
+
     Verifies SHA256 checksums, caches files locally, handles retries, and env variables.
     """
 
@@ -56,7 +56,9 @@ class ModelDownloader:
             max_retries: Maximum number of download attempts before failing.
             backoff_factor: Exponential backoff factor for retries.
         """
-        self.repo_id = repo_id or os.getenv("HF_MODEL_REPO_ID") or "Hariom9951/AI-Medical-Diagnosis-Models"
+        self.repo_id = (
+            repo_id or os.getenv("HF_MODEL_REPO_ID") or "Hariom9951/AI-Medical-Diagnosis-Models"
+        )
         self.token = token or os.getenv("HF_TOKEN")
         self.max_retries = max_retries
         self.backoff_factor = backoff_factor
@@ -138,7 +140,7 @@ class ModelDownloader:
             dest_path = self.project_root / dest_path
 
         expected_sha256 = EXPECTED_SHA256.get(repo_path)
-        
+
         # 1. Check if the file is already cached and valid
         if dest_path.exists() and dest_path.stat().st_size > 0:
             if expected_sha256:
@@ -148,13 +150,14 @@ class ModelDownloader:
                 else:
                     logger.info("Cached file %s failed validation. Overwriting...", dest_path)
             else:
-                logger.info("File %s exists (no verification checksum defined). Skipping...", dest_path)
+                logger.info(
+                    "File %s exists (no verification checksum defined). Skipping...", dest_path
+                )
                 return dest_path
 
         # 2. Check if offline mode is set via environment variable
         is_offline = (
-            os.getenv("TRANSFORMERS_OFFLINE") == "1"
-            or os.getenv("HF_DATASETS_OFFLINE") == "1"
+            os.getenv("TRANSFORMERS_OFFLINE") == "1" or os.getenv("HF_DATASETS_OFFLINE") == "1"
         )
         if is_offline:
             if dest_path.exists() and dest_path.stat().st_size > 0:
@@ -184,7 +187,7 @@ class ModelDownloader:
         for attempt in range(1, self.max_retries + 1):
             try:
                 dest_path.parent.mkdir(parents=True, exist_ok=True)
-                
+
                 # Delete existing file to prevent permission or cached symlink conflicts
                 if dest_path.exists():
                     try:
@@ -205,6 +208,7 @@ class ModelDownloader:
                 # Ensure it is placed at the exact expected local path
                 if downloaded_path.resolve() != dest_path.resolve():
                     import shutil
+
                     shutil.move(str(downloaded_path), str(dest_path))
 
                 # Verify downloaded file checksum

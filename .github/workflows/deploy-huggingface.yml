@@ -31,29 +31,57 @@ jobs:
 
       - name: Sync Files to Hugging Face Space
         run: |
-          # Use rsync to copy all files to the space, excluding model artifacts,
-          # LFS metadata, and large binary files.
-          # Model checkpoints are NOT deployed here — they are fetched at runtime
-          # via ModelDownloader from: Hariom9951/AI-Medical-Diagnosis-Models
-          rsync -av --delete \
+          # ── Snapshot the source into a clean staging directory ──────────────
+          # This prevents "file vanished" rsync exit-24 errors caused by Python
+          # writing __pycache__ / .pyc files concurrently during the run.
+          mkdir -p /tmp/src_snapshot
+          rsync -a \
             --exclude='.git/' \
             --exclude='.github/' \
+            --exclude='hf_space/' \
             --exclude='venv/' \
+            --exclude='.venv/' \
             --exclude='__pycache__/' \
+            --exclude='*.py[cod]' \
+            --exclude='*.pyo' \
             --exclude='.pytest_cache/' \
             --exclude='.mypy_cache/' \
+            --exclude='.tox/' \
             --exclude='.coverage' \
+            --exclude='htmlcov/' \
             --exclude='.env' \
+            --exclude='.env.*' \
+            --exclude='!.env.example' \
             --exclude='.gitattributes' \
-            --exclude='**/*.pth' \
-            --exclude='**/*.pt' \
-            --exclude='**/*.bin' \
-            --exclude='**/*.pkl' \
-            ./ hf_space/
+            --exclude='*.pth' \
+            --exclude='*.pt' \
+            --exclude='*.bin' \
+            --exclude='*.pkl' \
+            --exclude='*.onnx' \
+            --exclude='*.log' \
+            --exclude='logs/' \
+            --exclude='mlruns/' \
+            --exclude='mlflow.db' \
+            --exclude='.dvc/cache/' \
+            --exclude='.dvc/tmp/' \
+            --exclude='.docker/' \
+            --exclude='docker-compose.override.yml' \
+            --exclude='node_modules/' \
+            --exclude='*.egg-info/' \
+            --exclude='dist/' \
+            --exclude='build/' \
+            ./ /tmp/src_snapshot/
 
-          # Recreate empty artifact checkpoint directories so the
-          # container's mkdir commands don't fail on first run.
-          # These directories will be populated by ModelDownloader at startup.
+          # ── Sync the stable snapshot → hf_space ─────────────────────────────
+          # --delete removes files in hf_space that are no longer in source.
+          # --ignore-missing-args and exit code 24 are not applicable here
+          # because the source is now a stable snapshot (no concurrent writes).
+          rsync -av --delete \
+            --exclude='.git/' \
+            /tmp/src_snapshot/ hf_space/
+
+          # ── Recreate empty artifact checkpoint directories ─────────────────
+          # The ModelDownloader service will populate these at container startup.
           mkdir -p hf_space/artifacts/checkpoints
           mkdir -p hf_space/artifacts/checkpoints_nlp
 
@@ -63,8 +91,6 @@ jobs:
 
       - name: Configure Hugging Face Space Secrets
         env:
-          HF_USERNAME: ${{ secrets.HF_USERNAME }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_MODEL_REPO_ID: "Hariom9951/AI-Medical-Diagnosis-Models"
         run: |
           # Write the Space .env file with the model repository configuration.

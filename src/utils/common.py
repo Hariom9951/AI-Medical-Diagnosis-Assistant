@@ -168,4 +168,3 @@ def download_if_needed(local_path: Union[str, Path], filename: str) -> Path:
 
     downloader = ModelDownloader()
     return downloader.download_file(repo_path, local_path)
-

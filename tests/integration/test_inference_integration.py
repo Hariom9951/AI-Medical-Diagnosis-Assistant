@@ -66,9 +66,7 @@ class TestImageInferencePipelineMocked:
                     "metrics": {"val_loss": 0.12, "val_acc": 0.97},
                 }
 
-                with patch(
-                    "src.components.model_trainer.EfficientNetClassifier.load_state_dict"
-                ):
+                with patch("src.components.model_trainer.EfficientNetClassifier.load_state_dict"):
                     with patch(
                         "src.components.model_trainer.EfficientNetClassifier.forward"
                     ) as mock_forward:
@@ -240,9 +238,9 @@ class TestDownloaderTriggeredByPipelines:
                         pass  # We only care that download_file was called
 
         # ModelDownloader.download_file should have been called for the checkpoint
-        assert len(download_calls) > 0, (
-            f"Expected ModelDownloader.download_file to be called. Calls: {download_calls}"
-        )
+        assert (
+            len(download_calls) > 0
+        ), f"Expected ModelDownloader.download_file to be called. Calls: {download_calls}"
 
     def test_nlp_pipeline_calls_download_if_needed(self, tmp_path: Path) -> None:
         """NLPInferencePipeline calls download_if_needed for missing checkpoint and tokenizer files."""

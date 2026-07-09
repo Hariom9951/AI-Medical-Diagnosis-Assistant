@@ -113,7 +113,9 @@ class TestSHA256Verification:
 class TestCacheHitSkipsDownload:
     """Tests that a valid cached file is not re-downloaded."""
 
-    def test_cached_file_skips_download(self, tmp_project: Path, downloader: ModelDownloader) -> None:
+    def test_cached_file_skips_download(
+        self, tmp_project: Path, downloader: ModelDownloader
+    ) -> None:
         """If a file exists and SHA256 matches, hf_hub_download is never called."""
         repo_path = "nlp/tokenizer_config.json"
         local_path = tmp_project / "artifacts" / "checkpoints_nlp" / "tokenizer_config.json"

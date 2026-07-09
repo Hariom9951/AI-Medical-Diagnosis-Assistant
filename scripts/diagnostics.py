@@ -8,6 +8,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+
 def check_lfs_pointer(path: Path) -> bool:
     if not path.exists():
         return False
@@ -18,16 +19,17 @@ def check_lfs_pointer(path: Path) -> bool:
     except Exception:
         return False
 
+
 def main() -> None:
     print("=" * 70)
     print("  AI MEDICAL DIAGNOSIS ASSISTANT — STARTUP DIAGNOSTICS")
     print("=" * 70)
-    
+
     # 1. Paths and Working Directory
     print(f"[DIR]  Current Working Directory: {os.getcwd()}")
     print(f"[DIR]  Project Root:              {PROJECT_ROOT}")
     print(f"[DIR]  sys.path:                  {sys.path}")
-    
+
     # 2. Environment Variables
     env_vars = [
         "SPACE_ID",
@@ -41,7 +43,7 @@ def main() -> None:
     print("\n--- Environment Variables ---")
     for var in env_vars:
         print(f"  {var:<25} : {os.getenv(var, 'NOT SET')}")
-    
+
     token = os.getenv("HF_TOKEN")
     if token:
         print(f"  {'HF_TOKEN':<25} : PRESENT (Length: {len(token)})")
@@ -72,7 +74,7 @@ def main() -> None:
         exists = abs_path.exists()
         size = abs_path.stat().st_size if exists else -1
         is_pointer = check_lfs_pointer(abs_path)
-        
+
         status = "OK"
         if not exists:
             status = "MISSING"
@@ -80,10 +82,11 @@ def main() -> None:
             status = "LFS POINTER"
         elif size == 0:
             status = "0-BYTE DUMMY"
-            
+
         print(f"  {name:<28} : {status:<12} | Size: {size:>10} bytes | Path: {rel_path}")
 
     print("=" * 70)
+
 
 if __name__ == "__main__":
     main()
